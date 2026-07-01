@@ -1,0 +1,21 @@
+# API keys — never commit these
+.env
+
+# Python
+__pycache__/
+*.py[cod]
+*.egg-info/
+.venv/
+venv/
+dist/
+build/
+
+# Jupyter checkpoints
+.ipynb_checkpoints/
+
+# OS files
+.DS_Store
+Thumbs.db
+
+# PDFs you download for statute verification (too large for git)
+knowledge/pdfs/
