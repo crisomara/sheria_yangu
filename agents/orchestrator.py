@@ -60,7 +60,7 @@ LEGAL_REFERRALS = [
 class OrchestratorAgent:
     def __init__(self, session_id: str):
         self.session_id = session_id
-        self.api_key = os.environ.get("ANTHROPIC_API_KEY", "")
+        self.api_key = os.environ.get("GOOGLE_API_KEY", "")
 
     async def run(
         self,
