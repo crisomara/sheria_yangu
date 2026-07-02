@@ -2,15 +2,13 @@
 Orchestrator Agent — Sheria Yangu
 
 Coordinates the four specialist agents in sequence:
-  1. IntakeAgent      — classify document, extract entities
-  2. ResearchAgent    — find relevant Ugandan law
-  3. AnalysisAgent    — identify rights gaps, risks, deadlines
-  4. SynthesisAgent   — produce plain-language citizen report
+  1. IntakeAgent    — classify document, extract entities
+  2. ResearchAgent  — find relevant Ugandan law via MCP server
+  3. AnalysisAgent  — identify rights gaps, risks, deadlines
+  4. SynthesisAgent — produce plain-language citizen report
 
-DESIGN NOTE:
-The orchestrator passes structured outputs between agents explicitly.
-No agent shares a mutable global state — each receives only what it needs.
-This keeps the pipeline auditable and testable agent-by-agent.
+SECURITY: Session destroyed after every pipeline run.
+No document content persists between requests.
 """
 
 import os
@@ -69,11 +67,11 @@ class OrchestratorAgent:
         mime_type: Optional[str] = None,
     ) -> dict:
         """
-        Run the full pipeline and return a structured citizen report.
-        Session is destroyed after the pipeline completes — no data persists.
+        Run the full pipeline. Session destroyed after completion.
         """
         try:
-            # ── Step 1: Intake ────────────────────────────────────────────
+            # ── Step 1: Intake ────────────────────────────────────────
+            print("[Orchestrator] Step 1: Intake agent...")
             intake = IntakeAgent(api_key=self.api_key)
             intake_result = await intake.run(
                 document_text=document_text,
@@ -81,8 +79,10 @@ class OrchestratorAgent:
                 mime_type=mime_type,
             )
             update_session(self.session_id, "intake", intake_result)
+            print(f"[Orchestrator] Document type: {intake_result['document_type']}")
 
-            # ── Step 2: Research ──────────────────────────────────────────
+            # ── Step 2: Research ──────────────────────────────────────
+            print("[Orchestrator] Step 2: Research agent...")
             research = ResearchAgent(api_key=self.api_key)
             research_result = await research.run(
                 document_type=intake_result["document_type"],
@@ -90,8 +90,10 @@ class OrchestratorAgent:
                 entities=intake_result["entities"],
             )
             update_session(self.session_id, "research", research_result)
+            print(f"[Orchestrator] Found {len(research_result['statutes'])} relevant statutes")
 
-            # ── Step 3: Analysis ──────────────────────────────────────────
+            # ── Step 3: Analysis ──────────────────────────────────────
+            print("[Orchestrator] Step 3: Analysis agent...")
             analysis = AnalysisAgent(api_key=self.api_key)
             analysis_result = await analysis.run(
                 extracted_text=intake_result["extracted_text"],
@@ -99,17 +101,21 @@ class OrchestratorAgent:
                 statutes=research_result["statutes"],
             )
             update_session(self.session_id, "analysis", analysis_result)
+            print(f"[Orchestrator] Found {len(analysis_result['risks'])} risks, "
+                  f"{len(analysis_result['deadlines'])} deadlines")
 
-            # ── Step 4: Synthesis ─────────────────────────────────────────
+            # ── Step 4: Synthesis ─────────────────────────────────────
+            print("[Orchestrator] Step 4: Synthesis agent...")
             synthesis = SynthesisAgent(api_key=self.api_key)
             synthesis_result = await synthesis.run(
                 document_type=intake_result["document_type"],
                 entities=intake_result["entities"],
                 analysis=analysis_result,
             )
+            print("[Orchestrator] Pipeline complete.")
 
-            # ── Assemble final report ─────────────────────────────────────
-            report = {
+            # ── Assemble final report ─────────────────────────────────
+            return {
                 "session_id": self.session_id,
                 "document_type": intake_result["document_type"],
                 "summary": synthesis_result["summary"],
@@ -120,8 +126,7 @@ class OrchestratorAgent:
                 "legal_referrals": LEGAL_REFERRALS,
                 "disclaimer": DISCLAIMER,
             }
-            return report
 
         finally:
-            # Always destroy the session — no document content persists
+            # Always destroy session — no document content persists
             destroy_session(self.session_id)

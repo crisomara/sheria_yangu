@@ -1,47 +1,37 @@
-﻿"""
-Synthesis Agent â€” Sheria Yangu
+"""
+Synthesis Agent - Sheria Yangu
 
 Produces the plain-language citizen-facing report.
-Surfaces rights and options â€” never tells the citizen what to do.
-
-GUARDRAIL: Legal information only, not legal advice.
-
-OUTPUT SCHEMA:
-{
-  "summary": str,
-  "your_rights": list[str],
-  "next_steps": list[str]
-}
+GUARDRAIL: legal information only, never legal advice.
+Uses google.genai (new SDK).
 """
 
 import json
 import re
-import google.generativeai as genai
+from google import genai
+from google.genai import types
 
 
 SYNTHESIS_SYSTEM_PROMPT = """You are the Synthesis Agent for Sheria Yangu, a legal
 document understanding system for Ugandan citizens. You write the citizen-facing report.
 
 AUDIENCE: A Ugandan citizen with no legal training. Write clearly and simply.
-Use short sentences. Avoid legal jargon. Write in the second person ("you", "your").
+Use short sentences. Avoid legal jargon. Write in the second person (you, your).
 
-CRITICAL GUARDRAIL â€” NO LEGAL ADVICE:
+CRITICAL GUARDRAIL - NO LEGAL ADVICE:
 You surface information and options. You never tell the citizen what to do.
 
 PERMITTED next steps:
-  "You have the right to request written reasons for this decision."
-  "You may seek clarification on any clause before signing."
-  "You can contact FIDA Uganda for free legal assistance."
+  You have the right to request written reasons for this decision.
+  You may seek clarification on any clause before signing.
+  You can contact FIDA Uganda for free legal assistance.
 
 NOT PERMITTED next steps:
-  "You should refuse to sign."
-  "File a complaint immediately."
-  "Do not comply with this notice."
+  You should refuse to sign.
+  File a complaint immediately.
+  Do not comply with this notice.
 
-For "your_rights": state each right factually with its legal source.
-For "next_steps": state options and information, not instructions.
-
-Always respond with valid JSON only. No preamble, no explanation outside the JSON.
+Always respond with valid JSON only. No preamble, no markdown fences.
 
 Output this exact schema:
 {
@@ -54,21 +44,23 @@ Output this exact schema:
 
 class SynthesisAgent:
     def __init__(self, api_key: str):
-        genai.configure(api_key=api_key)
-        self.model = genai.GenerativeModel(
-            model_name="gemini-2.0-flash",
-            system_instruction=SYNTHESIS_SYSTEM_PROMPT,
-        )
+        self.client = genai.Client(api_key=api_key)
 
     async def run(self, document_type: str, entities: dict, analysis: dict) -> dict:
         analysis_text = json.dumps(analysis, indent=2)
         entities_text = json.dumps(entities, indent=2)
 
-        response = self.model.generate_content(
-            f"Document type: {document_type}\n\n"
-            f"Entities (parties, dates, obligations):\n{entities_text}\n\n"
-            f"Analysis results (risks, deadlines, rights gaps):\n{analysis_text}\n\n"
-            "Write the plain-language citizen report."
+        response = self.client.models.generate_content(
+            model="gemini-2.0-flash",
+            config=types.GenerateContentConfig(
+                system_instruction=SYNTHESIS_SYSTEM_PROMPT,
+            ),
+            contents=(
+                f"Document type: {document_type}\n\n"
+                f"Entities (parties, dates, obligations):\n{entities_text}\n\n"
+                f"Analysis results (risks, deadlines, rights gaps):\n{analysis_text}\n\n"
+                "Write the plain-language citizen report."
+            )
         )
 
         raw = response.text.strip()

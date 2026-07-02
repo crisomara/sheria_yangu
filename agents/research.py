@@ -1,20 +1,13 @@
-﻿"""
-Research Agent â€” Sheria Yangu
-
+"""
+Research Agent - Sheria Yangu
 Retrieves relevant Ugandan statutes for the document type.
-Only surfaces what the law states â€” no interpretation.
-
-OUTPUT SCHEMA:
-{
-  "statutes": [
-    { "act": str, "section": str, "title": str, "text": str, "relevance": str }
-  ]
-}
+Uses google.genai (new SDK).
 """
 
 import json
 import re
-import google.generativeai as genai
+from google import genai
+from google.genai import types
 from mcp.statute_lookup import lookup_statutes
 
 
@@ -23,11 +16,11 @@ document understanding system for Ugandan citizens.
 
 You have been given a document type, extracted entities, and statute excerpts from
 the knowledge base. Select which statutes are DIRECTLY relevant to this document.
-Do not invent statutes â€” only use what is provided.
+Do not invent statutes. Only use what is provided.
 
 For each relevant statute, write ONE sentence explaining why it applies.
 
-Always respond with valid JSON only. No preamble, no explanation outside the JSON.
+Always respond with valid JSON only. No preamble, no markdown fences.
 
 Output this exact schema:
 {
@@ -49,11 +42,7 @@ Maximum 6 statutes. Prioritise the most directly applicable ones.
 
 class ResearchAgent:
     def __init__(self, api_key: str):
-        genai.configure(api_key=api_key)
-        self.model = genai.GenerativeModel(
-            model_name="gemini-2.0-flash",
-            system_instruction=RESEARCH_SYSTEM_PROMPT,
-        )
+        self.client = genai.Client(api_key=api_key)
 
     async def run(self, document_type: str, extracted_text: str, entities: dict) -> dict:
         candidate_statutes = lookup_statutes(
@@ -67,11 +56,17 @@ class ResearchAgent:
         statutes_text = json.dumps(candidate_statutes, indent=2)
         entities_text = json.dumps(entities, indent=2)
 
-        response = self.model.generate_content(
-            f"Document type: {document_type}\n\n"
-            f"Entities extracted:\n{entities_text}\n\n"
-            f"Available statutes from knowledge base:\n{statutes_text}\n\n"
-            "Select and annotate the relevant statutes."
+        response = self.client.models.generate_content(
+            model="gemini-2.0-flash",
+            config=types.GenerateContentConfig(
+                system_instruction=RESEARCH_SYSTEM_PROMPT,
+            ),
+            contents=(
+                f"Document type: {document_type}\n\n"
+                f"Entities extracted:\n{entities_text}\n\n"
+                f"Available statutes from knowledge base:\n{statutes_text}\n\n"
+                "Select and annotate the relevant statutes."
+            )
         )
 
         raw = response.text.strip()
