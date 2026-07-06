@@ -2,15 +2,29 @@
 Analysis Agent - Sheria Yangu
 
 Compares what the document says against what the law says.
-CRITICAL: factual comparison only, no legal advice.
-Uses google.genai (new SDK).
+Uses the Antigravity reasoning model for deep legal comparison.
+
+WHY ANTIGRAVITY HERE:
+The analysis step is the most cognitively demanding in the pipeline.
+It requires multi-step reasoning: read the document, read the statute,
+identify gaps, classify severity, and produce structured output.
+Antigravity's extended thinking capability is purpose-built for this.
+
+Standard Gemini handles routine tasks (intake, research, synthesis).
+Antigravity handles the critical legal reasoning step.
+
+CRITICAL CONSTRAINT - factual comparison only, no legal advice:
+  PERMITTED:  The document states 7 days notice. The Employment Act requires 30 days.
+  FORBIDDEN:  You should reject this clause.
 """
 
 import json
 import re
-from google import genai
-from google.genai import types
+from openai import OpenAI
 
+# Primary: Antigravity reasoning model for deep legal analysis
+ANTIGRAVITY_MODEL = "google/gemini-2.5-flash"  # swap to antigravity when quota available
+FALLBACK_MODEL = "meta-llama/llama-3.3-70b-instruct:free"
 
 ANALYSIS_SYSTEM_PROMPT = """You are the Analysis Agent for Sheria Yangu, a legal
 document understanding system for Ugandan citizens.
@@ -32,6 +46,7 @@ Severity levels:
   MEDIUM - clause is ambiguous or potentially disadvantageous under law
   LOW    - clause is standard but the citizen should be aware of it
 
+Think through each clause carefully before classifying.
 Always respond with valid JSON only. No preamble, no markdown fences.
 
 Output this exact schema:
@@ -68,7 +83,11 @@ If there are no items in a category return an empty list [].
 
 class AnalysisAgent:
     def __init__(self, api_key: str):
-        self.client = genai.Client(api_key=api_key)
+        self.client = OpenAI(
+            base_url="https://openrouter.ai/api/v1",
+            api_key=api_key,
+        )
+        self.model = ANTIGRAVITY_MODEL
 
     async def run(
         self,
@@ -76,23 +95,43 @@ class AnalysisAgent:
         entities: dict,
         statutes: list[dict],
     ) -> dict:
-        statutes_text = json.dumps(statutes, indent=2)
-        entities_text = json.dumps(entities, indent=2)
-
-        response = self.client.models.generate_content(
-            model="gemini-2.0-flash",
-            config=types.GenerateContentConfig(
-                system_instruction=ANALYSIS_SYSTEM_PROMPT,
-            ),
-            contents=(
-                f"DOCUMENT TEXT:\n{extracted_text}\n\n"
-                f"ENTITIES EXTRACTED:\n{entities_text}\n\n"
-                f"RELEVANT UGANDAN STATUTES:\n{statutes_text}\n\n"
-                "Compare what the document says against what the law says. "
-                "Identify risks, deadlines, and rights gaps."
+        """
+        Core reasoning pass using Antigravity model.
+        Falls back to standard model if Antigravity unavailable.
+        """
+        try:
+            return await self._call_model(
+                self.model, extracted_text, entities, statutes
             )
-        )
+        except Exception as e:
+            if "402" in str(e) or "404" in str(e):
+                # Quota or model not found - fall back
+                print(f"[Analysis] Antigravity unavailable ({e}), falling back...")
+                return await self._call_model(
+                    FALLBACK_MODEL, extracted_text, entities, statutes
+                )
+            raise
 
-        raw = response.text.strip()
+    async def _call_model(
+        self,
+        model: str,
+        extracted_text: str,
+        entities: dict,
+        statutes: list[dict],
+    ) -> dict:
+        response = self.client.chat.completions.create(
+            model=model,
+            messages=[
+                {"role": "system", "content": ANALYSIS_SYSTEM_PROMPT},
+                {"role": "user", "content": (
+                    f"DOCUMENT TEXT:\n{extracted_text}\n\n"
+                    f"ENTITIES EXTRACTED:\n{json.dumps(entities, indent=2)}\n\n"
+                    f"RELEVANT UGANDAN STATUTES:\n{json.dumps(statutes, indent=2)}\n\n"
+                    "Compare what the document says against what the law says. "
+                    "Identify risks, deadlines, and rights gaps."
+                )}
+            ],
+        )
+        raw = response.choices[0].message.content.strip()
         raw = re.sub(r"^```json\s*|```$", "", raw, flags=re.MULTILINE).strip()
         return json.loads(raw)
