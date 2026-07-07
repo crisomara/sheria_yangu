@@ -1,15 +1,13 @@
 """
 Research Agent - Sheria Yangu
-Retrieves relevant Ugandan statutes for the document type.
-Uses google.genai (new SDK).
+Retrieves relevant Ugandan statutes via the MCP knowledge base.
 """
 
 import json
 import re
-from google import genai
-from google.genai import types
+from openai import OpenAI
+from config import get_base_url, get_standard_model
 from mcp.statute_lookup import lookup_statutes
-
 
 RESEARCH_SYSTEM_PROMPT = """You are the Research Agent for Sheria Yangu, a legal
 document understanding system for Ugandan citizens.
@@ -42,7 +40,11 @@ Maximum 6 statutes. Prioritise the most directly applicable ones.
 
 class ResearchAgent:
     def __init__(self, api_key: str):
-        self.client = genai.Client(api_key=api_key)
+        self.client = OpenAI(
+            base_url=get_base_url(),
+            api_key=api_key,
+        )
+        self.model = get_standard_model()
 
     async def run(self, document_type: str, extracted_text: str, entities: dict) -> dict:
         candidate_statutes = lookup_statutes(
@@ -53,22 +55,19 @@ class ResearchAgent:
         if not candidate_statutes:
             return {"statutes": []}
 
-        statutes_text = json.dumps(candidate_statutes, indent=2)
-        entities_text = json.dumps(entities, indent=2)
-
-        response = self.client.models.generate_content(
-            model="gemini-2.0-flash",
-            config=types.GenerateContentConfig(
-                system_instruction=RESEARCH_SYSTEM_PROMPT,
-            ),
-            contents=(
-                f"Document type: {document_type}\n\n"
-                f"Entities extracted:\n{entities_text}\n\n"
-                f"Available statutes from knowledge base:\n{statutes_text}\n\n"
-                "Select and annotate the relevant statutes."
-            )
+        response = self.client.chat.completions.create(
+            model=self.model,
+            messages=[
+                {"role": "system", "content": RESEARCH_SYSTEM_PROMPT},
+                {"role": "user", "content": (
+                    f"Document type: {document_type}\n\n"
+                    f"Entities extracted:\n{json.dumps(entities, indent=2)}\n\n"
+                    f"Available statutes from knowledge base:\n{json.dumps(candidate_statutes, indent=2)}\n\n"
+                    "Select and annotate the relevant statutes."
+                )}
+            ],
         )
 
-        raw = response.text.strip()
+        raw = response.choices[0].message.content.strip()
         raw = re.sub(r"^```json\s*|```$", "", raw, flags=re.MULTILINE).strip()
         return json.loads(raw)

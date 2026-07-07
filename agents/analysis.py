@@ -2,29 +2,28 @@
 Analysis Agent - Sheria Yangu
 
 Compares what the document says against what the law says.
-Uses the Antigravity reasoning model for deep legal comparison.
 
-WHY ANTIGRAVITY HERE:
-The analysis step is the most cognitively demanding in the pipeline.
-It requires multi-step reasoning: read the document, read the statute,
-identify gaps, classify severity, and produce structured output.
-Antigravity's extended thinking capability is purpose-built for this.
+ANTIGRAVITY ARCHITECTURE:
+This agent is designed to use Google's Antigravity reasoning model
+(models/antigravity-preview-05-2026) for deep legal comparison.
 
-Standard Gemini handles routine tasks (intake, research, synthesis).
-Antigravity handles the critical legal reasoning step.
+To activate Antigravity:
+  1. Set USE_GOOGLE_API = True in config.py
+  2. Set GOOGLE_API_KEY in your .env file
+
+Current demo mode uses gemini-2.5-flash via OpenRouter as a placeholder.
+The architecture, prompts, and output schema are identical —
+only the underlying model changes.
 
 CRITICAL CONSTRAINT - factual comparison only, no legal advice:
-  PERMITTED:  The document states 7 days notice. The Employment Act requires 30 days.
+  PERMITTED:  The document states 7 days notice. Employment Act requires 30 days.
   FORBIDDEN:  You should reject this clause.
 """
 
 import json
 import re
 from openai import OpenAI
-
-# Primary: Antigravity reasoning model for deep legal analysis
-ANTIGRAVITY_MODEL = "google/gemini-2.5-flash"  # swap to antigravity when quota available
-FALLBACK_MODEL = "meta-llama/llama-3.3-70b-instruct:free"
+from config import get_base_url, get_reasoning_model, get_fallback_model, USE_GOOGLE_API
 
 ANALYSIS_SYSTEM_PROMPT = """You are the Analysis Agent for Sheria Yangu, a legal
 document understanding system for Ugandan citizens.
@@ -84,10 +83,14 @@ If there are no items in a category return an empty list [].
 class AnalysisAgent:
     def __init__(self, api_key: str):
         self.client = OpenAI(
-            base_url="https://openrouter.ai/api/v1",
+            base_url=get_base_url(),
             api_key=api_key,
         )
-        self.model = ANTIGRAVITY_MODEL
+        # Production: Antigravity reasoning model
+        # Demo: gemini-2.5-flash placeholder via OpenRouter
+        self.model = get_reasoning_model()
+        self.fallback = get_fallback_model()
+        self.using_antigravity = USE_GOOGLE_API
 
     async def run(
         self,
@@ -96,19 +99,22 @@ class AnalysisAgent:
         statutes: list[dict],
     ) -> dict:
         """
-        Core reasoning pass using Antigravity model.
-        Falls back to standard model if Antigravity unavailable.
+        Legal reasoning pass.
+        Production: Antigravity model (extended thinking for complex legal comparison)
+        Demo: Standard model placeholder with identical prompts and schema
         """
+        model_label = "Antigravity" if self.using_antigravity else f"{self.model} (Antigravity placeholder)"
+        print(f"[Analysis] Using model: {model_label}")
+
         try:
             return await self._call_model(
                 self.model, extracted_text, entities, statutes
             )
         except Exception as e:
-            if "402" in str(e) or "404" in str(e):
-                # Quota or model not found - fall back
-                print(f"[Analysis] Antigravity unavailable ({e}), falling back...")
+            if "402" in str(e) or "429" in str(e):
+                print(f"[Analysis] Primary model unavailable, trying fallback...")
                 return await self._call_model(
-                    FALLBACK_MODEL, extracted_text, entities, statutes
+                    self.fallback, extracted_text, entities, statutes
                 )
             raise
 

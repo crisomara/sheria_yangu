@@ -1,16 +1,13 @@
 """
 Synthesis Agent - Sheria Yangu
-
 Produces the plain-language citizen-facing report.
 GUARDRAIL: legal information only, never legal advice.
-Uses google.genai (new SDK).
 """
 
 import json
 import re
-from google import genai
-from google.genai import types
-
+from openai import OpenAI
+from config import get_base_url, get_standard_model
 
 SYNTHESIS_SYSTEM_PROMPT = """You are the Synthesis Agent for Sheria Yangu, a legal
 document understanding system for Ugandan citizens. You write the citizen-facing report.
@@ -44,25 +41,26 @@ Output this exact schema:
 
 class SynthesisAgent:
     def __init__(self, api_key: str):
-        self.client = genai.Client(api_key=api_key)
+        self.client = OpenAI(
+            base_url=get_base_url(),
+            api_key=api_key,
+        )
+        self.model = get_standard_model()
 
     async def run(self, document_type: str, entities: dict, analysis: dict) -> dict:
-        analysis_text = json.dumps(analysis, indent=2)
-        entities_text = json.dumps(entities, indent=2)
-
-        response = self.client.models.generate_content(
-            model="gemini-2.0-flash",
-            config=types.GenerateContentConfig(
-                system_instruction=SYNTHESIS_SYSTEM_PROMPT,
-            ),
-            contents=(
-                f"Document type: {document_type}\n\n"
-                f"Entities (parties, dates, obligations):\n{entities_text}\n\n"
-                f"Analysis results (risks, deadlines, rights gaps):\n{analysis_text}\n\n"
-                "Write the plain-language citizen report."
-            )
+        response = self.client.chat.completions.create(
+            model=self.model,
+            messages=[
+                {"role": "system", "content": SYNTHESIS_SYSTEM_PROMPT},
+                {"role": "user", "content": (
+                    f"Document type: {document_type}\n\n"
+                    f"Entities (parties, dates, obligations):\n{json.dumps(entities, indent=2)}\n\n"
+                    f"Analysis results (risks, deadlines, rights gaps):\n{json.dumps(analysis, indent=2)}\n\n"
+                    "Write the plain-language citizen report."
+                )}
+            ],
         )
 
-        raw = response.text.strip()
+        raw = response.choices[0].message.content.strip()
         raw = re.sub(r"^```json\s*|```$", "", raw, flags=re.MULTILINE).strip()
         return json.loads(raw)

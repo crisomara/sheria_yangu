@@ -1,25 +1,23 @@
 """
-Orchestrator Agent — Sheria Yangu
+Orchestrator Agent - Sheria Yangu
 
-Coordinates the four specialist agents in sequence:
-  1. IntakeAgent    — classify document, extract entities
-  2. ResearchAgent  — find relevant Ugandan law via MCP server
-  3. AnalysisAgent  — identify rights gaps, risks, deadlines
-  4. SynthesisAgent — produce plain-language citizen report
+Coordinates the four specialist agents:
+  1. IntakeAgent    - classify document, extract entities
+  2. ResearchAgent  - find relevant Ugandan law via MCP server
+  3. AnalysisAgent  - deep legal reasoning (Antigravity in production)
+  4. SynthesisAgent - plain-language citizen report
 
 SECURITY: Session destroyed after every pipeline run.
 No document content persists between requests.
 """
 
-import os
-import json
 from typing import Optional
-
 from agents.intake import IntakeAgent
 from agents.research import ResearchAgent
 from agents.analysis import AnalysisAgent
 from agents.synthesis import SynthesisAgent
 from utils.session import update_session, destroy_session
+from config import get_api_key
 
 DISCLAIMER = (
     "Sheria Yangu provides legal information based on Ugandan law, "
@@ -58,7 +56,7 @@ LEGAL_REFERRALS = [
 class OrchestratorAgent:
     def __init__(self, session_id: str):
         self.session_id = session_id
-        self.api_key = os.environ.get("GOOGLE_API_KEY", "")
+        self.api_key = get_api_key()
 
     async def run(
         self,
@@ -66,11 +64,8 @@ class OrchestratorAgent:
         raw_bytes: Optional[bytes] = None,
         mime_type: Optional[str] = None,
     ) -> dict:
-        """
-        Run the full pipeline. Session destroyed after completion.
-        """
+        """Run the full pipeline. Session destroyed after completion."""
         try:
-            # ── Step 1: Intake ────────────────────────────────────────
             print("[Orchestrator] Step 1: Intake agent...")
             intake = IntakeAgent(api_key=self.api_key)
             intake_result = await intake.run(
@@ -81,8 +76,7 @@ class OrchestratorAgent:
             update_session(self.session_id, "intake", intake_result)
             print(f"[Orchestrator] Document type: {intake_result['document_type']}")
 
-            # ── Step 2: Research ──────────────────────────────────────
-            print("[Orchestrator] Step 2: Research agent...")
+            print("[Orchestrator] Step 2: Research agent (MCP)...")
             research = ResearchAgent(api_key=self.api_key)
             research_result = await research.run(
                 document_type=intake_result["document_type"],
@@ -92,8 +86,7 @@ class OrchestratorAgent:
             update_session(self.session_id, "research", research_result)
             print(f"[Orchestrator] Found {len(research_result['statutes'])} relevant statutes")
 
-            # ── Step 3: Analysis ──────────────────────────────────────
-            print("[Orchestrator] Step 3: Analysis agent...")
+            print("[Orchestrator] Step 3: Analysis agent (Antigravity)...")
             analysis = AnalysisAgent(api_key=self.api_key)
             analysis_result = await analysis.run(
                 extracted_text=intake_result["extracted_text"],
@@ -104,7 +97,6 @@ class OrchestratorAgent:
             print(f"[Orchestrator] Found {len(analysis_result['risks'])} risks, "
                   f"{len(analysis_result['deadlines'])} deadlines")
 
-            # ── Step 4: Synthesis ─────────────────────────────────────
             print("[Orchestrator] Step 4: Synthesis agent...")
             synthesis = SynthesisAgent(api_key=self.api_key)
             synthesis_result = await synthesis.run(
@@ -114,7 +106,6 @@ class OrchestratorAgent:
             )
             print("[Orchestrator] Pipeline complete.")
 
-            # ── Assemble final report ─────────────────────────────────
             return {
                 "session_id": self.session_id,
                 "document_type": intake_result["document_type"],
@@ -128,5 +119,4 @@ class OrchestratorAgent:
             }
 
         finally:
-            # Always destroy session — no document content persists
             destroy_session(self.session_id)
