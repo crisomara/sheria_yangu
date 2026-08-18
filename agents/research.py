@@ -7,8 +7,9 @@ import json
 import re
 from openai import OpenAI
 from fastmcp import Client
-from config import get_base_url, get_standard_model
+from config import get_base_url, get_standard_model, get_fallback_model
 from mcp_tools.server import mcp as statute_mcp_server
+from utils.llm import create_with_fallback
 
 RESEARCH_SYSTEM_PROMPT = """You are the Research Agent for Sheria Yangu, a legal
 document understanding system for Ugandan citizens.
@@ -46,6 +47,7 @@ class ResearchAgent:
             api_key=api_key,
         )
         self.model = get_standard_model()
+        self.fallback = get_fallback_model()
 
     async def run(self, document_type: str, extracted_text: str, entities: dict) -> dict:
         candidate_statutes = await self._lookup_statutes_via_mcp(
@@ -56,8 +58,8 @@ class ResearchAgent:
         if not candidate_statutes:
             return {"statutes": []}
 
-        response = self.client.chat.completions.create(
-            model=self.model,
+        response = await create_with_fallback(
+            self.client, self.model, self.fallback,
             messages=[
                 {"role": "system", "content": RESEARCH_SYSTEM_PROMPT},
                 {"role": "user", "content": (
@@ -67,6 +69,7 @@ class ResearchAgent:
                     "Select and annotate the relevant statutes."
                 )}
             ],
+            agent_label="Research",
         )
 
         raw = response.choices[0].message.content.strip()

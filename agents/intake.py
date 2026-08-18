@@ -7,7 +7,8 @@ import json
 import re
 from typing import Optional
 from openai import OpenAI
-from config import get_api_key, get_base_url, get_standard_model
+from config import get_api_key, get_base_url, get_standard_model, get_fallback_model
+from utils.llm import create_with_fallback
 
 INTAKE_SYSTEM_PROMPT = """You are the Intake Agent for Sheria Yangu, a legal document
 understanding system for Ugandan citizens.
@@ -42,6 +43,7 @@ class IntakeAgent:
             api_key=api_key,
         )
         self.model = get_standard_model()
+        self.fallback = get_fallback_model()
 
     async def run(
         self,
@@ -58,12 +60,13 @@ class IntakeAgent:
         else:
             raise ValueError("IntakeAgent requires document_text or raw_bytes.")
 
-        response = self.client.chat.completions.create(
-            model=self.model,
+        response = await create_with_fallback(
+            self.client, self.model, self.fallback,
             messages=[
                 {"role": "system", "content": INTAKE_SYSTEM_PROMPT},
                 {"role": "user", "content": f"Classify and extract entities from this document:\n\n{text}"}
             ],
+            agent_label="Intake",
         )
 
         raw = response.choices[0].message.content.strip()

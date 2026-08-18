@@ -54,9 +54,12 @@ OPENAI_FALLBACK_MODEL  = "gpt-4o-mini"
 
 # Google API models (production — swap USE_GOOGLE_API to True)
 GOOGLE_BASE_URL = "https://generativelanguage.googleapis.com/v1beta/openai/"
-GOOGLE_STANDARD_MODEL  = "gemini-3.6-flash"   # intake, research, synthesis
+GOOGLE_STANDARD_MODEL  = "gemini-3.6-flash"        # intake, research, synthesis
 GOOGLE_REASONING_MODEL = "gemini-3.1-pro-preview"  # analysis — deep legal reasoning
-GOOGLE_FALLBACK_MODEL  = "gemini-3.6-flash"
+# Deliberately a different model from GOOGLE_STANDARD_MODEL: free-tier quota is
+# per-project-per-model, so falling back to the same model on a 429 just fails
+# again. gemini-3.1-flash-lite sits in its own quota bucket.
+GOOGLE_FALLBACK_MODEL  = "gemini-3.1-flash-lite"
 
 # ── Active model selection ────────────────────────────────────────────────────
 def get_base_url() -> str:
