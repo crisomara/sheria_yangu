@@ -3,11 +3,11 @@ Analysis Agent - Sheria Yangu
 
 Compares what the document says against what the law says.
 
-ANTIGRAVITY ARCHITECTURE:
-This agent is designed to use Google's Antigravity reasoning model
-(models/antigravity-preview-05-2026) for deep legal comparison.
+DEEP-REASONING ARCHITECTURE ("Antigravity" tier):
+This agent is designed to use a stronger reasoning model (gemini-2.5-pro
+via the direct Google API) for deep legal comparison.
 
-To activate Antigravity:
+To activate the Google reasoning tier:
   1. Set USE_GOOGLE_API = True in config.py
   2. Set GOOGLE_API_KEY in your .env file
 

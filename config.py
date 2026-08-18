@@ -58,8 +58,9 @@ OPENAI_FALLBACK_MODEL  = "gpt-4o-mini"
 
 # Google API models (production — swap USE_GOOGLE_API to True)
 GOOGLE_BASE_URL = "https://generativelanguage.googleapis.com/v1beta/openai/"
-GOOGLE_STANDARD_MODEL  = "gemini-2.0-flash"           # intake, research, synthesis
-GOOGLE_REASONING_MODEL = "models/antigravity-preview-05-2026"  # analysis — deep legal reasoning
+GOOGLE_STANDARD_MODEL  = "gemini-3.6-flash"   # intake, research, synthesis
+GOOGLE_REASONING_MODEL = "gemini-3.1-pro-preview"  # analysis — deep legal reasoning
+GOOGLE_FALLBACK_MODEL  = "gemini-3.6-flash"
 
 # ── Active model selection ────────────────────────────────────────────────────
 def get_base_url() -> str:
@@ -75,7 +76,7 @@ def get_standard_model() -> str:
 def get_reasoning_model() -> str:
     """
     Returns the reasoning model for the Analysis Agent.
-    Production: Google Antigravity (models/antigravity-preview-05-2026)
+    Production: gemini-2.5-pro (deep-reasoning tier; "Antigravity" in project docs)
     Demo:       gpt-4o (direct OpenAI) or gemini-2.5-flash (OpenRouter), whichever key is set
     """
     if USE_GOOGLE_API:
@@ -83,4 +84,6 @@ def get_reasoning_model() -> str:
     return OPENAI_REASONING_MODEL if OPENAI_API_KEY else OPENROUTER_REASONING_MODEL
 
 def get_fallback_model() -> str:
+    if USE_GOOGLE_API:
+        return GOOGLE_FALLBACK_MODEL
     return OPENAI_FALLBACK_MODEL if OPENAI_API_KEY else OPENROUTER_FALLBACK_MODEL

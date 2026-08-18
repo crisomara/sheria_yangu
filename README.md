@@ -140,6 +140,12 @@ Sheria Yangu always includes referral information in every report:
 
 ---
 
+## License
+
+MIT — see [LICENSE](LICENSE).
+
+---
+
 ## Disclaimer
 
 Sheria Yangu provides legal information based on Ugandan law, not legal advice. For advice specific to your situation, consult a qualified advocate or contact the Uganda Law Society.
