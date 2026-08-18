@@ -158,7 +158,7 @@ git clone https://github.com/crisomara/sheria_yangu
 cd sheria_yangu
 pip install -r requirements.txt
 cp .env.example .env
-# Add your OPENROUTER_API_KEY to .env
+# Add your GOOGLE_API_KEY to .env (free at https://aistudio.google.com/apikey)
 python -m tests.test_pipeline
 ```
 

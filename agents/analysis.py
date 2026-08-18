@@ -4,15 +4,16 @@ Analysis Agent - Sheria Yangu
 Compares what the document says against what the law says.
 
 DEEP-REASONING ARCHITECTURE ("Antigravity" tier):
-This agent is designed to use a stronger reasoning model (gemini-2.5-pro
-via the direct Google API) for deep legal comparison.
+By default this agent uses gemini-3.1-pro-preview via the direct Google API
+for deep legal comparison — Google is the default provider (see config.py).
+That tier requires a billed Google Cloud project; without one, requests
+automatically fall back to gemini-3.6-flash.
 
-To activate the Google reasoning tier:
-  1. Set USE_GOOGLE_API = True in config.py
-  2. Set GOOGLE_API_KEY in your .env file
+To use OpenAI/OpenRouter instead:
+  Set USE_GOOGLE_API = False in config.py, and set OPENAI_API_KEY or
+  OPENROUTER_API_KEY in your .env file.
 
-Current demo mode uses gemini-2.5-flash via OpenRouter as a placeholder.
-The architecture, prompts, and output schema are identical —
+The architecture, prompts, and output schema are identical across providers —
 only the underlying model changes.
 
 CRITICAL CONSTRAINT - factual comparison only, no legal advice:

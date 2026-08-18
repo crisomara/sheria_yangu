@@ -1,16 +1,13 @@
 """
 Sheria Yangu — Central Configuration
 
-API SETUP:
-  Development/Demo: Set OPENROUTER_API_KEY or OPENAI_API_KEY in .env
-  Production:       Set GOOGLE_API_KEY in .env (unlocks Antigravity)
-
-Provider priority (when USE_GOOGLE_API is False): OPENAI_API_KEY, then OPENROUTER_API_KEY.
-
-To switch to Google API (Antigravity):
-  1. Add billing to your Google Cloud project
-  2. Set GOOGLE_API_KEY in .env
-  3. Set USE_GOOGLE_API = True below
+API SETUP (default provider is Google):
+  Default:   Set GOOGLE_API_KEY in .env (a free Google AI Studio key works for
+             the standard tier; the reasoning tier needs a billed Google
+             Cloud project and otherwise falls back automatically).
+  Alternate: Set USE_GOOGLE_API = False below, then set OPENAI_API_KEY or
+             OPENROUTER_API_KEY in .env (provider priority: OpenAI, then
+             OpenRouter).
 """
 
 import os
@@ -19,9 +16,8 @@ from dotenv import load_dotenv
 load_dotenv()
 
 # ── API provider switch ───────────────────────────────────────────────────────
-# Set to True when Google API key with billing is available
-# This unlocks the real Antigravity model for the Analysis Agent
-USE_GOOGLE_API = False
+# Default provider is Google. Set to False to use OpenAI/OpenRouter instead.
+USE_GOOGLE_API = True
 
 # ── API keys ──────────────────────────────────────────────────────────────────
 OPENROUTER_API_KEY = os.environ.get("OPENROUTER_API_KEY", "")
@@ -76,8 +72,10 @@ def get_standard_model() -> str:
 def get_reasoning_model() -> str:
     """
     Returns the reasoning model for the Analysis Agent.
-    Production: gemini-2.5-pro (deep-reasoning tier; "Antigravity" in project docs)
-    Demo:       gpt-4o (direct OpenAI) or gemini-2.5-flash (OpenRouter), whichever key is set
+    Default:   gemini-3.1-pro-preview (deep-reasoning tier; "Antigravity" in project
+               docs). Requires a billed Google Cloud project; falls back to
+               gemini-3.6-flash on 402/429 if billing isn't enabled.
+    Alternate: gpt-4o (direct OpenAI) or gemini-2.5-flash (OpenRouter), whichever key is set
     """
     if USE_GOOGLE_API:
         return GOOGLE_REASONING_MODEL
