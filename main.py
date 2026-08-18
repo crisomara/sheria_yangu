@@ -4,8 +4,12 @@ FastAPI entry point. Exposes the pipeline as an HTTP API
 so the Kaggle notebook can call it during the demo.
 """
 
+import json
+
 from fastapi import FastAPI, UploadFile, File, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.responses import JSONResponse
+from openai import APIError
 from pydantic import BaseModel
 from typing import Optional
 import uvicorn
@@ -18,6 +22,34 @@ app = FastAPI(
     description="AI-powered legal document understanding for Ugandan citizens.",
     version="0.1.0",
 )
+
+
+@app.exception_handler(ValueError)
+async def value_error_handler(request, exc: ValueError):
+    # Raised by config.get_api_key() when no key is configured — message is safe to surface.
+    return JSONResponse(
+        status_code=500,
+        content={"detail": str(exc)},
+    )
+
+
+@app.exception_handler(APIError)
+async def api_error_handler(request, exc: APIError):
+    # Covers auth failures, rate limits, and connection errors from the LLM provider.
+    # Full detail is already logged server-side by uvicorn; don't echo internals to the client.
+    return JSONResponse(
+        status_code=502,
+        content={"detail": "The upstream AI provider request failed. Check server logs and your API key/quota."},
+    )
+
+
+@app.exception_handler(json.JSONDecodeError)
+async def json_decode_error_handler(request, exc: json.JSONDecodeError):
+    # An agent's LLM response didn't come back as valid JSON.
+    return JSONResponse(
+        status_code=502,
+        content={"detail": "The AI model returned a malformed response. Please retry."},
+    )
 
 # CORS — permissive for demo; tighten for any real deployment
 app.add_middleware(

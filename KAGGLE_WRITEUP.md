@@ -81,7 +81,7 @@ The Analysis Agent performs the most cognitively demanding task: comparing every
 Five agents with explicit roles, structured input/output contracts, and an orchestrator that manages state and sequencing. Each agent is independently testable.
 
 ### 2. Custom MCP Server
-`mcp/server.py` exposes the Uganda statute knowledge base as three registered tools:
+`mcp_tools/server.py` exposes the Uganda statute knowledge base as three registered tools, called by the Research Agent through an in-process FastMCP client:
 - `lookup_statutes(document_type, context)` — finds relevant provisions
 - `list_acts()` — lists all Acts in the knowledge base
 - `get_section(act_name, section)` — retrieves a specific section
@@ -158,7 +158,7 @@ git clone https://github.com/crisomara/sheria_yangu
 cd sheria_yangu
 pip install -r requirements.txt
 cp .env.example .env
-# Add your OPENROUTER_API_KEY to .env
+# Add your GOOGLE_API_KEY to .env (free at https://aistudio.google.com/apikey)
 python -m tests.test_pipeline
 ```
 

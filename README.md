@@ -55,7 +55,7 @@ Agent    Agent     Agent     Agent
 ### Key concepts demonstrated (Kaggle course requirements)
 
 - ✅ **Multi-agent system (ADK)** — Orchestrator + four specialist agents
-- ✅ **MCP Server** — `mcp/statute_lookup.py` exposes the statute knowledge base as a tool
+- ✅ **MCP Server** — `mcp_tools/server.py` exposes the statute knowledge base as a tool, called via an in-process FastMCP client from the Research Agent
 - ✅ **Security** — Session-scoped only; no PII or document content persists to disk
 
 ---
@@ -63,10 +63,12 @@ Agent    Agent     Agent     Agent
 ## Setup
 
 ```bash
-git clone https://github.com/<your-handle>/sheria-yangu
-cd sheria-yangu
+git clone https://github.com/crisomara/sheria_yangu
+cd sheria_yangu
 pip install -r requirements.txt
-export ANTHROPIC_API_KEY=your_key_here
+cp .env.example .env
+# Add your GOOGLE_API_KEY to .env (free at https://aistudio.google.com/apikey).
+# To use OpenAI or OpenRouter instead, set USE_GOOGLE_API = False in config.py.
 uvicorn main:app --reload
 ```
 
@@ -136,6 +138,12 @@ Sheria Yangu always includes referral information in every report:
 - Sessions are in-memory only, expire after 10 minutes, and are explicitly destroyed after each pipeline run
 - No user data is logged or retained between requests
 - The API accepts text and PDF only; no executable file types are permitted
+
+---
+
+## License
+
+MIT — see [LICENSE](LICENSE).
 
 ---
 

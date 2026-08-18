@@ -7,7 +7,8 @@ GUARDRAIL: legal information only, never legal advice.
 import json
 import re
 from openai import OpenAI
-from config import get_base_url, get_standard_model
+from config import get_base_url, get_standard_model, get_fallback_model
+from utils.llm import create_with_fallback
 
 SYNTHESIS_SYSTEM_PROMPT = """You are the Synthesis Agent for Sheria Yangu, a legal
 document understanding system for Ugandan citizens. You write the citizen-facing report.
@@ -46,10 +47,11 @@ class SynthesisAgent:
             api_key=api_key,
         )
         self.model = get_standard_model()
+        self.fallback = get_fallback_model()
 
     async def run(self, document_type: str, entities: dict, analysis: dict) -> dict:
-        response = self.client.chat.completions.create(
-            model=self.model,
+        response = await create_with_fallback(
+            self.client, self.model, self.fallback,
             messages=[
                 {"role": "system", "content": SYNTHESIS_SYSTEM_PROMPT},
                 {"role": "user", "content": (
@@ -59,6 +61,7 @@ class SynthesisAgent:
                     "Write the plain-language citizen report."
                 )}
             ],
+            agent_label="Synthesis",
         )
 
         raw = response.choices[0].message.content.strip()

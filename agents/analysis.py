@@ -3,16 +3,17 @@ Analysis Agent - Sheria Yangu
 
 Compares what the document says against what the law says.
 
-ANTIGRAVITY ARCHITECTURE:
-This agent is designed to use Google's Antigravity reasoning model
-(models/antigravity-preview-05-2026) for deep legal comparison.
+DEEP-REASONING ARCHITECTURE ("Antigravity" tier):
+By default this agent uses gemini-3.1-pro-preview via the direct Google API
+for deep legal comparison — Google is the default provider (see config.py).
+That tier requires a billed Google Cloud project; without one, requests
+automatically fall back to gemini-3.6-flash.
 
-To activate Antigravity:
-  1. Set USE_GOOGLE_API = True in config.py
-  2. Set GOOGLE_API_KEY in your .env file
+To use OpenAI/OpenRouter instead:
+  Set USE_GOOGLE_API = False in config.py, and set OPENAI_API_KEY or
+  OPENROUTER_API_KEY in your .env file.
 
-Current demo mode uses gemini-2.5-flash via OpenRouter as a placeholder.
-The architecture, prompts, and output schema are identical —
+The architecture, prompts, and output schema are identical across providers —
 only the underlying model changes.
 
 CRITICAL CONSTRAINT - factual comparison only, no legal advice:
@@ -24,6 +25,7 @@ import json
 import re
 from openai import OpenAI
 from config import get_base_url, get_reasoning_model, get_fallback_model, USE_GOOGLE_API
+from utils.llm import create_with_fallback
 
 ANALYSIS_SYSTEM_PROMPT = """You are the Analysis Agent for Sheria Yangu, a legal
 document understanding system for Ugandan citizens.
@@ -106,27 +108,8 @@ class AnalysisAgent:
         model_label = "Antigravity" if self.using_antigravity else f"{self.model} (Antigravity placeholder)"
         print(f"[Analysis] Using model: {model_label}")
 
-        try:
-            return await self._call_model(
-                self.model, extracted_text, entities, statutes
-            )
-        except Exception as e:
-            if "402" in str(e) or "429" in str(e):
-                print(f"[Analysis] Primary model unavailable, trying fallback...")
-                return await self._call_model(
-                    self.fallback, extracted_text, entities, statutes
-                )
-            raise
-
-    async def _call_model(
-        self,
-        model: str,
-        extracted_text: str,
-        entities: dict,
-        statutes: list[dict],
-    ) -> dict:
-        response = self.client.chat.completions.create(
-            model=model,
+        response = await create_with_fallback(
+            self.client, self.model, self.fallback,
             messages=[
                 {"role": "system", "content": ANALYSIS_SYSTEM_PROMPT},
                 {"role": "user", "content": (
@@ -137,6 +120,7 @@ class AnalysisAgent:
                     "Identify risks, deadlines, and rights gaps."
                 )}
             ],
+            agent_label="Analysis",
         )
         raw = response.choices[0].message.content.strip()
         raw = re.sub(r"^```json\s*|```$", "", raw, flags=re.MULTILINE).strip()

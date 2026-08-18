@@ -13,9 +13,9 @@ Run with:
 
 import asyncio
 import json
-import os
 from utils.session import new_session
 from agents.orchestrator import OrchestratorAgent
+from config import get_api_key
 
 # ── Sample documents ──────────────────────────────────────────────────────────
 
@@ -86,9 +86,10 @@ async def run_test(name: str, document: str):
     print(f"TEST: {name}")
     print('='*60)
 
-    api_key = os.environ.get("GOOGLE_API_KEY", "")
-    if not api_key:
-        print("ERROR: GOOGLE_API_KEY not set. Add it to your .env file.")
+    try:
+        get_api_key()
+    except ValueError as e:
+        print(f"ERROR: {e}")
         return
 
     session_id = new_session()
