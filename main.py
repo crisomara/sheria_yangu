@@ -6,22 +6,42 @@ so the Kaggle notebook can call it during the demo.
 
 import json
 
-from fastapi import FastAPI, UploadFile, File, HTTPException
+from fastapi import FastAPI, Request, UploadFile, File, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
 from openai import APIError
-from pydantic import BaseModel
-from typing import Optional
+from pydantic import BaseModel, Field
+from slowapi import Limiter, _rate_limit_exceeded_handler
+from slowapi.errors import RateLimitExceeded
+from slowapi.util import get_remote_address
 import uvicorn
 
+import config
 from agents.orchestrator import OrchestratorAgent
-from utils.session import new_session, get_session
+from utils.session import new_session
 
 app = FastAPI(
     title="Sheria Yangu",
     description="AI-powered legal document understanding for Ugandan citizens.",
     version="0.1.0",
 )
+
+# ── Rate limiting ──────────────────────────────────────────────────────────────
+# Keyed by client IP. Protects the LLM-backed endpoints from a single client
+# burning through the (often small, free-tier) LLM quota shared by everyone
+# using this deployment. Configurable via RATE_LIMIT_PER_MINUTE in .env.
+limiter = Limiter(key_func=get_remote_address)
+app.state.limiter = limiter
+app.add_exception_handler(RateLimitExceeded, _rate_limit_exceeded_handler)
+
+
+@app.middleware("http")
+async def security_headers(request: Request, call_next):
+    response = await call_next(request)
+    response.headers["X-Content-Type-Options"] = "nosniff"
+    response.headers["X-Frame-Options"] = "DENY"
+    response.headers["Referrer-Policy"] = "no-referrer"
+    return response
 
 
 @app.exception_handler(ValueError)
@@ -51,10 +71,12 @@ async def json_decode_error_handler(request, exc: json.JSONDecodeError):
         content={"detail": "The AI model returned a malformed response. Please retry."},
     )
 
-# CORS — permissive for demo; tighten for any real deployment
+# CORS — deny all cross-origin browser requests until ALLOWED_ORIGINS is set
+# in .env. Does not affect non-browser clients (curl, the Kaggle notebook,
+# requests/httpx) since CORS is a browser-only mechanism.
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"],
+    allow_origins=config.ALLOWED_ORIGINS,
     allow_methods=["POST", "GET"],
     allow_headers=["*"],
 )
@@ -63,8 +85,11 @@ app.add_middleware(
 # ── Request / Response schemas ────────────────────────────────────────────────
 
 class TextQueryRequest(BaseModel):
-    text: str
-    session_id: Optional[str] = None
+    # max_length keeps a single request from burning excessive LLM tokens/quota;
+    # a real notice/contract/summons is well under this. session_id is
+    # deliberately NOT client-suppliable — always server-generated (see
+    # utils/session.py) so a client can never reference someone else's session.
+    text: str = Field(..., min_length=1, max_length=config.MAX_TEXT_LENGTH)
 
 
 class AnalysisResponse(BaseModel):
@@ -87,19 +112,21 @@ async def health():
 
 
 @app.post("/analyse/text", response_model=AnalysisResponse)
-async def analyse_text(request: TextQueryRequest):
+@limiter.limit(f"{config.RATE_LIMIT_PER_MINUTE}/minute")
+async def analyse_text(request: Request, body: TextQueryRequest):
     """
     Accepts raw pasted text — a contract clause, a notice, a query.
     No file upload needed; ideal for the Kaggle notebook demo.
     """
-    session_id = request.session_id or new_session()
+    session_id = new_session()
     orchestrator = OrchestratorAgent(session_id=session_id)
-    result = await orchestrator.run(document_text=request.text)
+    result = await orchestrator.run(document_text=body.text)
     return result
 
 
 @app.post("/analyse/file", response_model=AnalysisResponse)
-async def analyse_file(file: UploadFile = File(...)):
+@limiter.limit(f"{config.RATE_LIMIT_PER_MINUTE}/minute")
+async def analyse_file(request: Request, file: UploadFile = File(...)):
     """
     Accepts a PDF or .txt upload.
     Content is parsed in-memory; nothing is written to disk.
@@ -110,11 +137,34 @@ async def analyse_file(file: UploadFile = File(...)):
             detail="Only PDF and plain text files are supported."
         )
 
+    raw_bytes = await _read_upload_within_limit(file)
+
     session_id = new_session()
-    raw_bytes = await file.read()
     orchestrator = OrchestratorAgent(session_id=session_id)
     result = await orchestrator.run(raw_bytes=raw_bytes, mime_type=file.content_type)
     return result
+
+
+async def _read_upload_within_limit(file: UploadFile) -> bytes:
+    """
+    Reads an upload in chunks, aborting as soon as MAX_UPLOAD_BYTES is
+    exceeded — never buffers an oversized file fully into memory first.
+    """
+    chunks = []
+    total = 0
+    chunk_size = 1024 * 1024  # 1 MB
+    while True:
+        chunk = await file.read(chunk_size)
+        if not chunk:
+            break
+        total += len(chunk)
+        if total > config.MAX_UPLOAD_BYTES:
+            raise HTTPException(
+                status_code=413,
+                detail=f"File exceeds the {config.MAX_UPLOAD_BYTES // (1024 * 1024)} MB upload limit.",
+            )
+        chunks.append(chunk)
+    return b"".join(chunks)
 
 
 if __name__ == "__main__":

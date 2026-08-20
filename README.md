@@ -56,7 +56,7 @@ Agent    Agent     Agent     Agent
 
 - ✅ **Multi-agent system (ADK)** — Orchestrator + four specialist agents
 - ✅ **MCP Server** — `mcp_tools/server.py` exposes the statute knowledge base as a tool, called via an in-process FastMCP client from the Research Agent
-- ✅ **Security** — Session-scoped only; no PII or document content persists to disk
+- ✅ **Security** — Session-scoped only, no PII/document content persists to disk, plus rate limiting, input size limits, restricted CORS, and security headers (see [Security & privacy](#security--privacy))
 
 ---
 
@@ -134,10 +134,22 @@ Sheria Yangu always includes referral information in every report:
 
 ## Security & privacy
 
+**Data handling:**
 - No document content is written to disk at any point
-- Sessions are in-memory only, expire after 10 minutes, and are explicitly destroyed after each pipeline run
+- Sessions are in-memory only, server-generated UUIDs (never client-suppliable), expire after 10 minutes, and are explicitly destroyed after each pipeline run
 - No user data is logged or retained between requests
-- The API accepts text and PDF only; no executable file types are permitted
+
+**API hardening:**
+- **CORS** denies all cross-origin browser requests by default. Set `ALLOWED_ORIGINS` in `.env` (comma-separated) once you have a real frontend origin to allow. This does not affect non-browser clients — curl, the Kaggle notebook, `requests`/`httpx` calls are unaffected by CORS either way.
+- **Rate limiting**: `/analyse/text` and `/analyse/file` are capped at `RATE_LIMIT_PER_MINUTE` (default 10) requests/minute per client IP — keeps one client from burning through the LLM quota shared by everyone using a given deployment.
+- **Input limits**: request text is capped at `MAX_TEXT_LENGTH` (default 20,000 chars); file uploads are capped at `MAX_UPLOAD_BYTES` (default 10 MB) and checked incrementally while reading, so an oversized upload can't be used to exhaust server memory. Only `application/pdf` and `text/plain` are accepted.
+- Security headers (`X-Content-Type-Options`, `X-Frame-Options`, `Referrer-Policy`) are set on every response.
+- Errors return actionable JSON (missing key, upstream provider failure, malformed model output, rate limit, validation) without leaking internals like stack traces or the API key.
+
+**Not covered — deliberately out of scope for now:**
+- No end-user authentication. This is intentional: the product's mission is open access for citizens, not a gated service. If you deploy this publicly, the rate limiting above is your main abuse control, not auth.
+- No TLS/HTTPS termination — that's a deployment-layer concern (reverse proxy / hosting platform), not application code.
+- The knowledge base and risk analysis have not been reviewed by a licensed advocate. Treat this as a working prototype, not a source of truth, until that review happens.
 
 ---
 

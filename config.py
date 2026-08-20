@@ -88,3 +88,26 @@ def get_fallback_model() -> str:
     if USE_GOOGLE_API:
         return GOOGLE_FALLBACK_MODEL
     return OPENAI_FALLBACK_MODEL if OPENAI_API_KEY else OPENROUTER_FALLBACK_MODEL
+
+# ── API security settings ─────────────────────────────────────────────────────
+# Comma-separated list of allowed browser origins for CORS, e.g.
+#   ALLOWED_ORIGINS=https://sheria-yangu.example.com,http://localhost:3000
+# Deliberately empty (deny all cross-origin browser requests) until a real
+# frontend origin is configured. This does NOT block server-to-server calls
+# (curl, the Kaggle notebook, requests/httpx) — CORS only restricts browsers.
+ALLOWED_ORIGINS = [o.strip() for o in os.environ.get("ALLOWED_ORIGINS", "").split(",") if o.strip()]
+
+# Requests per minute, per client IP, applied to the LLM-backed /analyse/*
+# endpoints. Keeps a single client from burning through the (often small,
+# free-tier) LLM quota shared by everyone using this deployment.
+RATE_LIMIT_PER_MINUTE = int(os.environ.get("RATE_LIMIT_PER_MINUTE", "10"))
+
+# Reject /analyse/text bodies longer than this — a real notice/contract/
+# summons is well under this; anything bigger is more likely abuse than a
+# legitimate document.
+MAX_TEXT_LENGTH = int(os.environ.get("MAX_TEXT_LENGTH", "20000"))
+
+# Reject /analyse/file uploads larger than this (bytes). Checked incrementally
+# while reading, not after buffering the whole file, so an oversized upload
+# can't be used to exhaust server memory.
+MAX_UPLOAD_BYTES = int(os.environ.get("MAX_UPLOAD_BYTES", str(10 * 1024 * 1024)))  # 10 MB
