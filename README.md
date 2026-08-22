@@ -9,6 +9,8 @@ Sheria Yangu is an AI-powered multi-agent system that helps Ugandan citizens und
 🚀 **[Try the live demo](#running-the-demo)** — bring your own free Google API key, paste a document, see a real analysis
 📄 **[Kaggle notebook](notebooks/sheria_yangu_demo.ipynb)** — three worked examples, no setup needed
 
+![Demo app screenshot: light-themed UI with a Sheria Yangu hero, an animated scale, a scope and legal disclaimer box, and a document input form](assets/app_preview.png)
+
 ---
 
 ## The Problem
