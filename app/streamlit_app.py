@@ -95,13 +95,146 @@ def render_report(result: dict) -> str:
     return "\n\n".join(parts)
 
 
-st.set_page_config(page_title="Sheria Yangu — Know Your Rights", page_icon="🇺🇬", layout="centered")
+st.set_page_config(page_title="Sheria Yangu — Know Your Rights", page_icon="⚖️", layout="centered")
 
-st.title("🇺🇬 Sheria Yangu — Know Your Rights")
 st.markdown(
-    "Paste a contract, notice, or summons and see what it says, what Ugandan law "
-    "says, your rights, and your options. **This is legal information, not legal "
-    "advice.**\n\n"
+    """
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@600;700;800&family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
+
+<style>
+  html, body, [class*="css"] { font-family: 'Inter', -apple-system, sans-serif; }
+
+  .block-container { padding-top: 2rem; max-width: 760px; }
+
+  /* Uganda flag colors (black / gold / red) used as a restrained accent palette
+     rather than literally reproducing the flag. */
+  :root {
+    --ug-black: #1A1A1A;
+    --ug-gold: #B8860B;
+    --ug-red: #A6192E;
+  }
+
+  .hero { text-align: center; margin-bottom: 0.5rem; }
+
+  .scale-svg { margin: 0 auto 0.5rem; display: block; }
+  .scale-beam {
+    transform-origin: 100px 30px;
+    animation: scale-tilt 4.2s ease-in-out infinite alternate;
+  }
+  @keyframes scale-tilt {
+    0%   { transform: rotate(-5deg); }
+    100% { transform: rotate(5deg); }
+  }
+
+  .hero-title {
+    font-family: 'Playfair Display', Georgia, serif;
+    font-weight: 800;
+    font-size: 3.2rem;
+    color: var(--ug-black);
+    letter-spacing: -0.01em;
+    margin: 0;
+    line-height: 1.05;
+  }
+  .hero-subtitle {
+    font-family: 'Playfair Display', Georgia, serif;
+    font-style: italic;
+    font-weight: 600;
+    font-size: 1.15rem;
+    color: var(--ug-gold);
+    margin: 0.2rem 0 1rem;
+  }
+
+  .ug-divider {
+    height: 5px;
+    width: 180px;
+    margin: 0.5rem auto 1.2rem;
+    border-radius: 3px;
+    background: linear-gradient(90deg,
+      var(--ug-black) 0%, var(--ug-black) 33%,
+      var(--ug-gold) 33%, var(--ug-gold) 66%,
+      var(--ug-red) 66%, var(--ug-red) 100%);
+  }
+
+  .hero-intro {
+    text-align: center;
+    color: #4A4A4A;
+    font-size: 1.02rem;
+    max-width: 56ch;
+    margin: 0 auto 1.8rem;
+    line-height: 1.55;
+  }
+
+  .scope-box {
+    background: #F3ECDC;
+    border: 1px solid #E3D5B0;
+    border-left: 4px solid var(--ug-gold);
+    border-radius: 8px;
+    padding: 1.1rem 1.3rem;
+    margin-bottom: 1.6rem;
+    font-size: 0.92rem;
+    color: var(--ug-black);
+  }
+  .scope-box .scope-title {
+    font-weight: 700;
+    margin-bottom: 0.4rem;
+  }
+  .scope-box ul { margin: 0.3rem 0 0.7rem 1.1rem; padding: 0; }
+  .scope-box li { margin-bottom: 0.15rem; }
+  .disclaimer-line {
+    border-left: 4px solid var(--ug-red);
+    background: #FBEAEA;
+    border-radius: 6px;
+    padding: 0.7rem 1rem;
+    margin-top: 0.6rem;
+    font-size: 0.88rem;
+    color: #5A1A1A;
+  }
+</style>
+
+<div class="hero">
+  <svg class="scale-svg" width="110" height="100" viewBox="0 0 200 160">
+    <polygon points="70,150 130,150 105,130 95,130" fill="#1A1A1A"/>
+    <rect x="97" y="30" width="6" height="100" fill="#1A1A1A"/>
+    <circle cx="100" cy="30" r="6" fill="#B8860B"/>
+    <g class="scale-beam">
+      <line x1="30" y1="30" x2="170" y2="30" stroke="#1A1A1A" stroke-width="4"/>
+      <line x1="30" y1="30" x2="30" y2="65" stroke="#1A1A1A" stroke-width="2"/>
+      <path d="M10,65 Q30,90 50,65" fill="none" stroke="#B8860B" stroke-width="3"/>
+      <line x1="170" y1="30" x2="170" y2="65" stroke="#1A1A1A" stroke-width="2"/>
+      <path d="M150,65 Q170,90 190,65" fill="none" stroke="#B8860B" stroke-width="3"/>
+    </g>
+  </svg>
+  <div class="hero-title">Sheria Yangu</div>
+  <div class="hero-subtitle">Know Your Rights, Uganda 🇺🇬</div>
+</div>
+
+<div class="ug-divider"></div>
+
+<div class="hero-intro">
+  Paste a contract, notice, or summons and see what it says, what Ugandan law says,
+  your rights, and your options — in plain language, in minutes.
+</div>
+
+<div class="scope-box">
+  <div class="scope-title">Scope of this system</div>
+  Covers eight common document types under Ugandan law: employment contracts, eviction
+  notices, police summons, land and tenancy agreements, loan agreements, court orders,
+  and government notices. It compares what your document says against what the named
+  statute says — it does not review documents outside these categories, and it does not
+  give strategic or tactical advice about what to do.
+  <div class="disclaimer-line">
+    ⚖️ <b>This is legal information, not legal advice.</b> The knowledge base and risk
+    analysis have not been reviewed by a licensed advocate. For advice specific to your
+    situation, consult a qualified advocate or contact the Uganda Law Society.
+  </div>
+</div>
+""",
+    unsafe_allow_html=True,
+)
+
+st.markdown(
     "Every analysis is a real AI request, so this demo runs on *your own* API key "
     "rather than a shared one — get a free key at "
     "[aistudio.google.com/apikey](https://aistudio.google.com/apikey). "
