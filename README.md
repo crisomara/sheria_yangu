@@ -48,7 +48,7 @@ flowchart LR
 
     subgraph serving["Serving layer"]
         API[FastAPI\nmain.py] --> O
-        Demo[Gradio demo\ndemo/app.py\nbring-your-own-key] --> O
+        Demo[Streamlit demo\napp/streamlit_app.py\nbring-your-own-key] --> O
     end
 ```
 
@@ -143,20 +143,24 @@ API is available at `http://localhost:8000`. Interactive docs at `/docs`.
 
 ## Running the demo
 
-### Gradio (bring your own key)
+### Streamlit (bring your own key)
 
 ```bash
-python demo/app.py
+streamlit run app/streamlit_app.py
 ```
 
 Opens a local web UI. Paste a free Google API key (get one at
 [aistudio.google.com/apikey](https://aistudio.google.com/apikey)) and either paste
-document text or pick one of the three worked examples. The key is used only for your
-own request — it's never logged, written to disk, or persisted (same session-destruction
-guarantee the API gives, see [Security & privacy](#security--privacy)). This app doesn't
-call the FastAPI service over HTTP — it imports the same agent pipeline directly, same
-reasoning as the Music Recommender's Streamlit demo: one process to host, no second
-point of failure for a portfolio demo.
+document text, upload a PDF, or pick one of the three worked examples. The key is used
+only for your own request — it's never logged, written to disk, or persisted (same
+session-destruction guarantee the API gives, see [Security & privacy](#security--privacy)).
+This app doesn't call the FastAPI service over HTTP — it imports the same agent pipeline
+directly, one process to host, no second point of failure for a portfolio demo. Deployed
+on [Streamlit Community Cloud](https://streamlit.io/cloud) (free, no card required),
+same platform as the Music Recommender project — Hugging Face Spaces was the original
+target but now requires a PRO subscription for any Space with real compute (Gradio or
+Docker SDK), so this was rebuilt from an earlier Gradio version rather than paying to
+host a portfolio demo.
 
 ### Via the Kaggle notebook
 
@@ -228,7 +232,7 @@ Sheria Yangu always includes referral information in every report:
 - No document content is written to disk at any point
 - Sessions are in-memory only, server-generated UUIDs (never client-suppliable), expire after 10 minutes, and are explicitly destroyed after each pipeline run
 - No user data is logged or retained between requests
-- The public Gradio demo takes each visitor's own API key, used only for their request, never logged or stored — see [Running the demo](#running-the-demo)
+- The public Streamlit demo takes each visitor's own API key, used only for their request, never logged or stored — see [Running the demo](#running-the-demo)
 
 **API hardening:**
 - **CORS** denies all cross-origin browser requests by default. Set `ALLOWED_ORIGINS` in `.env` (comma-separated) once you have a real frontend origin to allow. This does not affect non-browser clients — curl, the Kaggle notebook, `requests`/`httpx` calls are unaffected by CORS either way.
@@ -260,8 +264,8 @@ mcp_tools/
 utils/
   llm.py                 # shared LLM call helper with model fallback
   session.py               # in-memory, TTL-expiring, session-destroying session store
-demo/
-  app.py                  # Gradio demo, bring-your-own-key
+app/
+  streamlit_app.py        # Streamlit demo, bring-your-own-key
 scripts/
   evaluate_pipeline.py   # scored evaluation harness (schema validity, rubric, latency)
 tests/

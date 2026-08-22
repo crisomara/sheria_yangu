@@ -14,7 +14,7 @@ actually verified, not aspirationally.
 - [x] Feature engineering step present and documented — Intake Agent's structured entity extraction (parties, dates, amounts, obligations) from raw document text, documented in README's Architecture section
 - [ ] Training pipeline present — genuinely N/A, no model training happens (pretrained LLMs via API only); not force-checked
 - [x] Evaluation step present, with real metrics — `scripts/evaluate_pipeline.py` (schema validity rate, rubric pass rate, latency) — **run it yourself and paste real numbers into the README's Results section**, I couldn't run it myself without a Google API key, see note below
-- [x] Deployed: runs somewhere beyond a notebook — FastAPI (`main.py`) verified: local run + Docker build + Docker run, `/health` and `/docs` both responding for real; Gradio demo (`demo/app.py`) verified booting locally with working guard-rail paths
+- [x] Deployed: runs somewhere beyond a notebook — FastAPI (`main.py`) verified: local run + Docker build + Docker run, `/health` and `/docs` both responding for real; Streamlit demo (`app/streamlit_app.py`) verified locally
 - [x] Monitoring present, or at minimum a stated monitoring plan — README "Monitoring" section
 
 ## 2. Reproducibility
@@ -34,7 +34,7 @@ actually verified, not aspirationally.
 - [x] README has a problem statement
 - [x] README has an architecture diagram — Mermaid diagram (replaced the previous ASCII block), renders natively on GitHub
 - [ ] README has results — section exists and explains what's measured, but needs real numbers pasted in from an actual `scripts/evaluate_pipeline.py` run (couldn't run it myself — needs a real Google API key, which I don't have and shouldn't ask for)
-- [x] README has "how to run" instructions — covers API, Gradio demo, Kaggle notebook, and Docker
+- [x] README has "how to run" instructions — covers API, Streamlit demo, Kaggle notebook, and Docker
 - [ ] (Bonus) a blog post or demo video — not done, optional
 
 ## 6. Modern Stack
@@ -45,14 +45,14 @@ actually verified, not aspirationally.
 ## 7. Recruiter-Scan Signals
 - [x] README is understandable in 30 seconds
 - [x] Commit history reads as polished work — pre-existing, PR-based history already reads well
-- [ ] Live deployment link (Streamlit / Gradio / Hugging Face Spaces) — Gradio app built and verified locally, but not yet deployed to Hugging Face Spaces (needs the user's own HF account — same one-click pattern as Music Recommender's Streamlit Cloud link)
+- [ ] Live deployment link (Streamlit / Gradio / Hugging Face Spaces) — Streamlit app built and verified locally (HF Spaces was the original target but now requires PRO for any compute-backed Space); not yet deployed to Streamlit Community Cloud (needs the user's own account — same one-click pattern as Music Recommender's link)
 - [x] Architecture diagram a non-technical reviewer can follow — Mermaid diagram
 
 ## 8. Elevation Pass
 - [x] Data augmentation/preprocessing pipeline — Intake Agent's entity extraction (see item 1)
 - [ ] MLOps practices: model versioning, experiment tracking — N/A, no models are trained/versioned here; not force-checked (same reasoning as item 6)
 - [x] Deployed as a REST API (Flask/FastAPI) — FastAPI, verified with real `/health` + `/docs` responses, both locally and via Docker
-- [x] Demo app (Streamlit/Gradio) — Gradio, verified booting locally with working guard-rails; live HF Spaces link pending (see item 7)
+- [x] Demo app (Streamlit/Gradio) — Streamlit, verified locally with working guard-rails; live Streamlit Cloud link pending (see item 7)
 - [x] Written explanation of a real-world application of the system — README "Business relevance"
 
 ## 9. Forward-Looking Signals (2025+)
