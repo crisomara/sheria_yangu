@@ -54,9 +54,12 @@ LEGAL_REFERRALS = [
 
 
 class OrchestratorAgent:
-    def __init__(self, session_id: str):
+    def __init__(self, session_id: str, api_key: Optional[str] = None):
         self.session_id = session_id
-        self.api_key = get_api_key()
+        # api_key is optional so the FastAPI service (env-configured key) and a
+        # bring-your-own-key demo (visitor-supplied key, never touches the server's
+        # own quota) can share this same orchestrator unmodified.
+        self.api_key = api_key or get_api_key()
 
     async def run(
         self,

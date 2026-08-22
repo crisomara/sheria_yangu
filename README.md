@@ -6,40 +6,50 @@ Sheria Yangu is an AI-powered multi-agent system that helps Ugandan citizens und
 
 **Sheria Yangu provides legal information, not legal advice.** It surfaces what the law says versus what your document says. For advice specific to your situation, consult a qualified advocate.
 
+🚀 **[Try the live demo](#running-the-demo)** — bring your own free Google API key, paste a document, see a real analysis
+📄 **[Kaggle notebook](notebooks/sheria_yangu_demo.ipynb)** — three worked examples, no setup needed
+
 ---
 
 ## The Problem
 
 Access to legal information in Uganda is a privilege. A citizen who receives an eviction notice, a police summons, or an employment contract they are pressured to sign immediately is at a significant disadvantage if they cannot afford an advocate. Sheria Yangu closes that gap — not by replacing advocates, but by ensuring every citizen walks into that conversation already knowing their rights.
 
+## Business relevance
+
+The practical outcome this targets is access to justice, not a model metric: the gap between "knows their rights" and "doesn't" is what decides whether a citizen negotiates from a position of knowledge or signs/vacates/complies out of fear and information asymmetry. A generic chatbot answering legal questions doesn't close this gap — what does is comparing *this specific document* against *what the law actually says*, in plain language, in minutes, for free. That's the product decision behind the four-agent pipeline (intake → research → analysis → synthesis) rather than a single-shot LLM call: each stage is auditable, and the Analysis Agent is constrained (by prompt and by design) to factual comparison only — "the document says X, the law says Y" — never "you should do Z," which is what keeps this legal *information* rather than legal *advice*, and keeps liability and scope honest.
+
 ---
 
 ## Architecture
 
-```
-User Input (text / PDF)
-        │
-        ▼
-┌─────────────────────┐
-│  Orchestrator Agent │  — Routes tasks, manages state, destroys session on completion
-└─────────────────────┘
-   │        │        │        │
-   ▼        ▼        ▼        ▼
-Intake  Research  Analysis  Synthesis
-Agent    Agent     Agent     Agent
-   │        │        │        │
-   └────────┴────────┴────────┘
-                │
-                ▼
-        Citizen Report
-  ┌─────────────────────────┐
-  │ What this document means│
-  │ Your rights under law   │
-  │ Risks (with severity)   │
-  │ Deadlines to be aware of│
-  │ Options available to you│
-  │ Legal aid referrals     │
-  └─────────────────────────┘
+```mermaid
+flowchart LR
+    U[User Input\ntext / PDF] --> O[Orchestrator Agent]
+
+    subgraph pipeline["Four-agent pipeline"]
+        O --> I[Intake Agent\nclassify + extract entities]
+        I --> R[Research Agent\nqueries statute KB via MCP]
+        R --> A[Analysis Agent\ndocument vs. law comparison]
+        A --> S[Synthesis Agent\nplain-language report]
+    end
+
+    R -.MCP tool call.-> KB[(Uganda statute\nknowledge base)]
+
+    S --> Rep[Citizen Report]
+    Rep --> Rep1[What this document means]
+    Rep --> Rep2[Your rights under law]
+    Rep --> Rep3[Risks, with severity]
+    Rep --> Rep4[Deadlines to be aware of]
+    Rep --> Rep5[Options available to you]
+    Rep --> Rep6[Legal aid referrals]
+
+    O -.destroys session.-> Done[Session data discarded]
+
+    subgraph serving["Serving layer"]
+        API[FastAPI\nmain.py] --> O
+        Demo[Gradio demo\ndemo/app.py\nbring-your-own-key] --> O
+    end
 ```
 
 ### Agent responsibilities
@@ -60,6 +70,63 @@ Agent    Agent     Agent     Agent
 
 ---
 
+## Results
+
+`scripts/evaluate_pipeline.py` scores the pipeline against the three worked-example
+documents (eviction notice, employment contract, police summons) on three axes:
+
+- **Schema validity** — did every agent stage return well-formed output the next stage
+  (and the API response model) could actually consume?
+- **Rubric pass rate** — a small, hand-written check per document: did the analysis at
+  least surface the one obviously-relevant issue (e.g. the eviction notice's 3-day
+  period, the employment clause's below-statutory notice period, the summons' right to
+  legal representation)? This is a keyword/field-presence check, not a legal-accuracy
+  certification — see [Security & privacy](#security--privacy) for why that distinction
+  matters here.
+- **Latency** — wall-clock time per full four-agent pipeline run.
+
+Run it yourself (needs a real API key, so numbers aren't hardcoded here):
+```bash
+python -m scripts.evaluate_pipeline
+```
+Results are written to `scripts/eval_results.json` and printed as a summary table.
+
+---
+
+## Scalability considerations
+
+This is a portfolio-scale demo, not a production service, but the constraints that
+would actually matter at scale:
+
+- **Every request is a real LLM cost** — four sequential model calls per document
+  (intake → research → analysis → synthesis), unlike a typical ML demo with zero
+  per-request inference cost. This is why the public demo asks each visitor for their
+  own API key rather than sharing one (see [Running the demo](#running-the-demo)).
+- **The four agent calls are currently sequential**, not parallel — Research depends on
+  Intake's output, and Analysis depends on Research's, so the pipeline has a real
+  dependency chain. There's no obvious win from parallelizing this specific chain, but
+  running Research's statute lookups concurrently with entity-extraction refinement
+  would be the first place to look if latency became a problem at real usage volume.
+- **Statute lookups are repeatable** — the same document type (e.g. "Eviction Notice")
+  triggers largely the same statute queries. A cache keyed on document type + a coarse
+  entity fingerprint would cut Research Agent latency/cost for the most common document
+  types without touching correctness.
+- **Rate limiting (`RATE_LIMIT_PER_MINUTE`, default 10/min per IP)** is the current
+  abuse control on the FastAPI service — the natural next step at real scale is a queue
+  in front of the LLM-backed endpoints rather than synchronous rate-limited rejection.
+
+## Monitoring (stated plan, not built)
+
+A production version would track: **schema-validity rate** over time (a drop signals
+either a prompt regression or an upstream model change breaking the expected JSON
+shape), **latency p50/p95** per agent stage (not just the pipeline total, since a single
+slow stage should be diagnosable), and **rate-limit trigger frequency** as an abuse
+signal distinct from organic traffic growth. None of this is built out here — a demo
+doesn't have production traffic to monitor — but it's what "done" would mean beyond
+this repo, same honesty bar as stating it rather than building an unused dashboard.
+
+---
+
 ## Setup
 
 ```bash
@@ -74,14 +141,28 @@ uvicorn main:app --reload
 
 API is available at `http://localhost:8000`. Interactive docs at `/docs`.
 
----
+## Running the demo
 
-## Usage
+### Gradio (bring your own key)
 
-### Via the Kaggle notebook (recommended for demo)
+```bash
+python demo/app.py
+```
 
-Open `notebooks/sheria_yangu_demo.ipynb` and run all cells.
-Three worked examples are provided: eviction notice, employment contract, police summons.
+Opens a local web UI. Paste a free Google API key (get one at
+[aistudio.google.com/apikey](https://aistudio.google.com/apikey)) and either paste
+document text or pick one of the three worked examples. The key is used only for your
+own request — it's never logged, written to disk, or persisted (same session-destruction
+guarantee the API gives, see [Security & privacy](#security--privacy)). This app doesn't
+call the FastAPI service over HTTP — it imports the same agent pipeline directly, same
+reasoning as the Music Recommender's Streamlit demo: one process to host, no second
+point of failure for a portfolio demo.
+
+### Via the Kaggle notebook
+
+Open `notebooks/sheria_yangu_demo.ipynb` and run all cells. Three worked examples are
+provided: eviction notice, employment contract, police summons. No setup beyond a
+Kaggle account.
 
 ### Via the API
 
@@ -90,6 +171,15 @@ curl -X POST http://localhost:8000/analyse/text \
   -H "Content-Type: application/json" \
   -d '{"text": "You are hereby required to vacate the premises within 3 days..."}'
 ```
+
+## Running with Docker
+
+```bash
+docker build -t sheria-yangu-api .
+docker run -p 8000:8000 -e GOOGLE_API_KEY=your-key-here sheria-yangu-api
+```
+
+The API key is passed at run time (`-e` / `--env-file`), never baked into the image.
 
 ---
 
@@ -138,6 +228,7 @@ Sheria Yangu always includes referral information in every report:
 - No document content is written to disk at any point
 - Sessions are in-memory only, server-generated UUIDs (never client-suppliable), expire after 10 minutes, and are explicitly destroyed after each pipeline run
 - No user data is logged or retained between requests
+- The public Gradio demo takes each visitor's own API key, used only for their request, never logged or stored — see [Running the demo](#running-the-demo)
 
 **API hardening:**
 - **CORS** denies all cross-origin browser requests by default. Set `ALLOWED_ORIGINS` in `.env` (comma-separated) once you have a real frontend origin to allow. This does not affect non-browser clients — curl, the Kaggle notebook, `requests`/`httpx` calls are unaffected by CORS either way.
@@ -149,7 +240,39 @@ Sheria Yangu always includes referral information in every report:
 **Not covered — deliberately out of scope for now:**
 - No end-user authentication. This is intentional: the product's mission is open access for citizens, not a gated service. If you deploy this publicly, the rate limiting above is your main abuse control, not auth.
 - No TLS/HTTPS termination — that's a deployment-layer concern (reverse proxy / hosting platform), not application code.
-- The knowledge base and risk analysis have not been reviewed by a licensed advocate. Treat this as a working prototype, not a source of truth, until that review happens.
+- The knowledge base and risk analysis have not been reviewed by a licensed advocate. Treat this as a working prototype, not a source of truth, until that review happens. This is also why `scripts/evaluate_pipeline.py`'s rubric checks are described as a regression signal, not a legal-accuracy certification.
+
+---
+
+## Structure
+
+```
+agents/
+  orchestrator.py      # coordinates the 4-agent pipeline, destroys session on completion
+  intake.py             # classify document, extract entities
+  research.py            # query statute KB via MCP
+  analysis.py             # document-vs-law comparison, risk/deadline extraction
+  synthesis.py             # plain-language citizen report
+knowledge/
+  uganda_statutes.py    # statute knowledge base
+mcp_tools/
+  server.py              # exposes the knowledge base as an MCP tool
+utils/
+  llm.py                 # shared LLM call helper with model fallback
+  session.py               # in-memory, TTL-expiring, session-destroying session store
+demo/
+  app.py                  # Gradio demo, bring-your-own-key
+scripts/
+  evaluate_pipeline.py   # scored evaluation harness (schema validity, rubric, latency)
+tests/
+  test_pipeline.py        # manual smoke test (3 worked examples)
+notebooks/
+  sheria_yangu_demo.ipynb # Kaggle demo notebook
+main.py                    # FastAPI entry point
+config.py                   # provider/model config (Google default, OpenAI/OpenRouter alternate)
+Dockerfile                   # containerizes main.py
+CHECKLIST.md                  # portfolio-readiness checklist for this project
+```
 
 ---
 

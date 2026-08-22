@@ -1,0 +1,14 @@
+.git
+.env
+.venv
+venv
+__pycache__
+*.pyc
+.ipynb_checkpoints
+notebooks
+tests
+demo
+knowledge/pdfs
+KAGGLE_WRITEUP.md
+README.md
+CHECKLIST.md
