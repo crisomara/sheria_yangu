@@ -63,7 +63,7 @@ def render_report(result: dict) -> str:
         parts.append("### Risks")
         for r in risks:
             emoji = SEVERITY_EMOJI.get(r.get("severity", ""), "⚪")
-            parts.append(f"**{emoji} {r.get('severity', '')} — {r.get('plain_explanation', '')}**")
+            parts.append(f"**{emoji} {r.get('severity', '')}: {r.get('plain_explanation', '')}**")
             if r.get("what_document_says"):
                 parts.append(f"- Document says: {r['what_document_says']}")
             if r.get("what_law_says"):
@@ -75,7 +75,7 @@ def render_report(result: dict) -> str:
         parts.append("### Deadlines")
         for d in result["deadlines"]:
             emoji = URGENCY_EMOJI.get(d.get("urgency", ""), "•")
-            parts.append(f"- {emoji} **{d.get('description', '')}** — {d.get('date_mentioned', '')}")
+            parts.append(f"- {emoji} **{d.get('description', '')}** ({d.get('date_mentioned', '')})")
 
     if result["next_steps"]:
         parts.append("### Next steps")
@@ -86,16 +86,16 @@ def render_report(result: dict) -> str:
         for ref in result["legal_referrals"]:
             line = f"- **{ref.get('name', '')}**"
             if ref.get("phone"):
-                line += f" — {ref['phone']}"
+                line += f" · {ref['phone']}"
             if ref.get("url"):
-                line += f" — {ref['url']}"
+                line += f" · {ref['url']}"
             parts.append(line)
 
     parts.append(f"\n---\n*{result['disclaimer']}*")
     return "\n\n".join(parts)
 
 
-st.set_page_config(page_title="Sheria Yangu — Know Your Rights", page_icon="⚖️", layout="centered")
+st.set_page_config(page_title="Sheria Yangu", page_icon="⚖️", layout="centered")
 
 st.markdown(
     """
@@ -214,7 +214,7 @@ st.markdown(
 
 <div class="hero-intro">
   Paste a contract, notice, or summons and see what it says, what Ugandan law says,
-  your rights, and your options — in plain language, in minutes.
+  your rights, and your options, in plain language, in minutes.
 </div>
 
 <div class="scope-box">
@@ -222,7 +222,7 @@ st.markdown(
   Covers eight common document types under Ugandan law: employment contracts, eviction
   notices, police summons, land and tenancy agreements, loan agreements, court orders,
   and government notices. It compares what your document says against what the named
-  statute says — it does not review documents outside these categories, and it does not
+  statute says. It does not review documents outside these categories, and it does not
   give strategic or tactical advice about what to do.
   <div class="disclaimer-line">
     ⚖️ <b>This is legal information, not legal advice.</b> The knowledge base and risk
@@ -236,7 +236,7 @@ st.markdown(
 
 st.markdown(
     "Every analysis is a real AI request, so this demo runs on *your own* API key "
-    "rather than a shared one — get a free key at "
+    "rather than a shared one. Get a free key at "
     "[aistudio.google.com/apikey](https://aistudio.google.com/apikey). "
     "It's used only for your request and is never logged or stored."
 )
@@ -272,7 +272,7 @@ submitted = st.button("Analyse document", type="primary")
 if submitted:
     if not api_key.strip():
         st.warning(
-            "Paste a free Google API key above first — get one at "
+            "Paste a free Google API key above first. Get one at "
             "[aistudio.google.com/apikey](https://aistudio.google.com/apikey)."
         )
     elif uploaded_file is None and not document_text.strip():
@@ -281,7 +281,7 @@ if submitted:
         session_id = new_session()
         orchestrator = OrchestratorAgent(session_id=session_id, api_key=api_key.strip())
 
-        with st.spinner("Running the four-agent pipeline — this takes a moment..."):
+        with st.spinner("Running the four-agent pipeline (this takes a moment)..."):
             try:
                 if uploaded_file is not None:
                     raw_bytes = uploaded_file.read()
@@ -291,7 +291,7 @@ if submitted:
                     result = asyncio.run(orchestrator.run(document_text=document_text))
             except APIError:
                 st.error(
-                    "The AI provider rejected that request — double-check the API key "
+                    "The AI provider rejected that request. Double-check the API key "
                     "is valid and has quota remaining."
                 )
                 result = None
