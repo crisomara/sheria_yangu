@@ -19,3 +19,6 @@ Thumbs.db
 
 # PDFs you download for statute verification (too large for git)
 knowledge/pdfs/
+# Test coverage output
+.coverage
+coverage.xml
