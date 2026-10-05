@@ -5,9 +5,11 @@ Retrieves relevant Ugandan statutes via the MCP knowledge base.
 
 import json
 import re
-from openai import OpenAI
+
 from fastmcp import Client
-from config import get_base_url, get_standard_model, get_fallback_model
+from openai import OpenAI
+
+from config import get_base_url, get_fallback_model, get_standard_model
 from mcp_tools.server import mcp as statute_mcp_server
 from utils.llm import create_with_fallback
 
@@ -59,15 +61,20 @@ class ResearchAgent:
             return {"statutes": []}
 
         response = await create_with_fallback(
-            self.client, self.model, self.fallback,
+            self.client,
+            self.model,
+            self.fallback,
             messages=[
                 {"role": "system", "content": RESEARCH_SYSTEM_PROMPT},
-                {"role": "user", "content": (
-                    f"Document type: {document_type}\n\n"
-                    f"Entities extracted:\n{json.dumps(entities, indent=2)}\n\n"
-                    f"Available statutes from knowledge base:\n{json.dumps(candidate_statutes, indent=2)}\n\n"
-                    "Select and annotate the relevant statutes."
-                )}
+                {
+                    "role": "user",
+                    "content": (
+                        f"Document type: {document_type}\n\n"
+                        f"Entities extracted:\n{json.dumps(entities, indent=2)}\n\n"
+                        f"Available statutes from knowledge base:\n{json.dumps(candidate_statutes, indent=2)}\n\n"
+                        "Select and annotate the relevant statutes."
+                    ),
+                },
             ],
             agent_label="Research",
         )

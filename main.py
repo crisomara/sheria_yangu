@@ -6,7 +6,8 @@ so the Kaggle notebook can call it during the demo.
 
 import json
 
-from fastapi import FastAPI, Request, UploadFile, File, HTTPException
+import uvicorn
+from fastapi import FastAPI, File, HTTPException, Request, UploadFile
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
 from openai import APIError
@@ -14,7 +15,6 @@ from pydantic import BaseModel, Field
 from slowapi import Limiter, _rate_limit_exceeded_handler
 from slowapi.errors import RateLimitExceeded
 from slowapi.util import get_remote_address
-import uvicorn
 
 import config
 from agents.orchestrator import OrchestratorAgent
@@ -71,6 +71,7 @@ async def json_decode_error_handler(request, exc: json.JSONDecodeError):
         content={"detail": "The AI model returned a malformed response. Please retry."},
     )
 
+
 # CORS — deny all cross-origin browser requests until ALLOWED_ORIGINS is set
 # in .env. Does not affect non-browser clients (curl, the Kaggle notebook,
 # requests/httpx) since CORS is a browser-only mechanism.
@@ -83,6 +84,7 @@ app.add_middleware(
 
 
 # ── Request / Response schemas ────────────────────────────────────────────────
+
 
 class TextQueryRequest(BaseModel):
     # max_length keeps a single request from burning excessive LLM tokens/quota;
@@ -97,14 +99,15 @@ class AnalysisResponse(BaseModel):
     document_type: str
     summary: str
     your_rights: list[str]
-    risks: list[dict]       # [{clause, severity, legal_basis, plain_explanation}]
-    deadlines: list[dict]   # [{description, date_mentioned, urgency}]
+    risks: list[dict]  # [{clause, severity, legal_basis, plain_explanation}]
+    deadlines: list[dict]  # [{description, date_mentioned, urgency}]
     next_steps: list[str]
     legal_referrals: list[dict]
     disclaimer: str
 
 
 # ── Routes ────────────────────────────────────────────────────────────────────
+
 
 @app.get("/health")
 async def health():
@@ -132,10 +135,7 @@ async def analyse_file(request: Request, file: UploadFile = File(...)):
     Content is parsed in-memory; nothing is written to disk.
     """
     if file.content_type not in ("application/pdf", "text/plain"):
-        raise HTTPException(
-            status_code=415,
-            detail="Only PDF and plain text files are supported."
-        )
+        raise HTTPException(status_code=415, detail="Only PDF and plain text files are supported.")
 
     raw_bytes = await _read_upload_within_limit(file)
 

@@ -16,8 +16,10 @@ To run as part of the pipeline, the orchestrator starts this
 server in-process via FastMCP's lifespan integration.
 """
 
-from fastmcp import FastMCP
 from typing import Optional
+
+from fastmcp import FastMCP
+
 from knowledge.uganda_statutes import STATUTE_DB
 
 # Initialise the MCP server
@@ -52,14 +54,14 @@ def lookup_statutes(document_type: str, context: Optional[str] = None) -> list[d
 
     # Map document types to statute tag groups
     tag_map = {
-        "employment contract":  ["employment", "labour", "termination"],
-        "eviction notice":      ["tenancy", "landlord", "property"],
-        "police summons":       ["police", "criminal", "rights", "arrest"],
-        "land agreement":       ["land", "property", "registration"],
-        "tenancy agreement":    ["tenancy", "landlord", "property"],
-        "loan agreement":       ["financial", "contract", "interest"],
-        "court order":          ["court", "criminal", "rights"],
-        "government notice":    ["administrative", "rights"],
+        "employment contract": ["employment", "labour", "termination"],
+        "eviction notice": ["tenancy", "landlord", "property"],
+        "police summons": ["police", "criminal", "rights", "arrest"],
+        "land agreement": ["land", "property", "registration"],
+        "tenancy agreement": ["tenancy", "landlord", "property"],
+        "loan agreement": ["financial", "contract", "interest"],
+        "court order": ["court", "criminal", "rights"],
+        "government notice": ["administrative", "rights"],
     }
 
     applicable_tags = set()
@@ -86,10 +88,7 @@ def lookup_statutes(document_type: str, context: Optional[str] = None) -> list[d
         if any(w in context_lower for w in ["land", "title", "mailo", "lease"]):
             applicable_tags.update(["land", "property"])
 
-    results = [
-        statute for statute in STATUTE_DB
-        if any(tag in statute.get("tags", []) for tag in applicable_tags)
-    ]
+    results = [statute for statute in STATUTE_DB if any(tag in statute.get("tags", []) for tag in applicable_tags)]
 
     return results[:10]
 
@@ -119,8 +118,7 @@ def get_section(act_name: str, section: str) -> Optional[dict]:
         The statute dict if found, or None.
     """
     for statute in STATUTE_DB:
-        if (act_name.lower() in statute["act"].lower() and
-                section.lower() in statute["section"].lower()):
+        if act_name.lower() in statute["act"].lower() and section.lower() in statute["section"].lower():
             return statute
     return None
 

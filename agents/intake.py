@@ -6,8 +6,10 @@ Classifies document type and extracts key entities.
 import json
 import re
 from typing import Optional
+
 from openai import OpenAI
-from config import get_api_key, get_base_url, get_standard_model, get_fallback_model
+
+from config import get_base_url, get_fallback_model, get_standard_model
 from utils.llm import create_with_fallback
 
 INTAKE_SYSTEM_PROMPT = """You are the Intake Agent for Sheria Yangu, a legal document
@@ -61,10 +63,12 @@ class IntakeAgent:
             raise ValueError("IntakeAgent requires document_text or raw_bytes.")
 
         response = await create_with_fallback(
-            self.client, self.model, self.fallback,
+            self.client,
+            self.model,
+            self.fallback,
             messages=[
                 {"role": "system", "content": INTAKE_SYSTEM_PROMPT},
-                {"role": "user", "content": f"Classify and extract entities from this document:\n\n{text}"}
+                {"role": "user", "content": f"Classify and extract entities from this document:\n\n{text}"},
             ],
             agent_label="Intake",
         )
@@ -81,7 +85,9 @@ class IntakeAgent:
     def _extract_pdf_text(self, raw_bytes: bytes) -> str:
         try:
             import io
+
             from pypdf import PdfReader
+
             reader = PdfReader(io.BytesIO(raw_bytes))
             pages = [page.extract_text() or "" for page in reader.pages]
             return "\n\n".join(pages).strip()
