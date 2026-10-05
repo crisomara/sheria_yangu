@@ -30,7 +30,7 @@ def test_statute_db_entries_are_well_formed():
     "document_type, expected_tag",
     [
         ("Employment Contract", "employment"),
-        ("Eviction Notice", "tenancy"),
+        ("Eviction Notice", "landlord"),
         ("Police Summons", "police"),
         ("Land Agreement", "land"),
     ],
