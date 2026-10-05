@@ -21,6 +21,7 @@ Deploy: connect this repo to Streamlit Community Cloud (share.streamlit.io), set
 this file as the entry point. No secrets need to be configured on the deployment
 itself, since the key lives only in each visitor's own browser session.
 """
+
 from __future__ import annotations
 
 import asyncio
@@ -34,8 +35,8 @@ import streamlit as st
 from openai import APIError
 
 from agents.orchestrator import OrchestratorAgent
+from tests.test_pipeline import EMPLOYMENT_CONTRACT_CLAUSE, EVICTION_NOTICE, POLICE_SUMMONS
 from utils.session import new_session
-from tests.test_pipeline import EVICTION_NOTICE, EMPLOYMENT_CONTRACT_CLAUSE, POLICE_SUMMONS
 
 SEVERITY_ORDER = {"HIGH": 0, "MEDIUM": 1, "LOW": 2}
 SEVERITY_EMOJI = {"HIGH": "🔴", "MEDIUM": "🟠", "LOW": "🟡"}
@@ -253,7 +254,7 @@ if pending_example is not None:
 
 st.caption("Or try a worked example:")
 cols = st.columns(len(EXAMPLES))
-for col, (label, text) in zip(cols, EXAMPLES.items()):
+for col, (label, text) in zip(cols, EXAMPLES.items(), strict=True):
     if col.button(label, use_container_width=True):
         st.session_state._pending_example = text
         st.rerun()
@@ -261,7 +262,9 @@ for col, (label, text) in zip(cols, EXAMPLES.items()):
 tab_text, tab_pdf = st.tabs(["Paste text", "Upload PDF"])
 with tab_text:
     document_text = st.text_area(
-        "Document text", height=250, key="document_text_area",
+        "Document text",
+        height=250,
+        key="document_text_area",
         placeholder="Paste a contract, notice, or summons here...",
     )
 with tab_pdf:
@@ -291,8 +294,7 @@ if submitted:
                     result = asyncio.run(orchestrator.run(document_text=document_text))
             except APIError:
                 st.error(
-                    "The AI provider rejected that request. Double-check the API key "
-                    "is valid and has quota remaining."
+                    "The AI provider rejected that request. Double-check the API key is valid and has quota remaining."
                 )
                 result = None
             except Exception as e:  # noqa: BLE001 - demo UI, show a clean message not a stack trace
@@ -302,7 +304,4 @@ if submitted:
         if result is not None:
             st.markdown(render_report(result))
 
-st.markdown(
-    "---\n"
-    "Source: [github.com/crisomara/sheria_yangu](https://github.com/crisomara/sheria_yangu)"
-)
+st.markdown("---\nSource: [github.com/crisomara/sheria_yangu](https://github.com/crisomara/sheria_yangu)")

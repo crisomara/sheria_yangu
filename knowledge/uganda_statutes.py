@@ -16,16 +16,13 @@ Acts covered:
 """
 
 STATUTE_DB = [
-
     # ── Constitutional Rights (apply to all document types) ───────────────
-
     {
         "act": "Constitution of Uganda 1995",
         "section": "Article 24",
         "title": "Respect for human dignity and protection from inhuman treatment",
         "text": (
-            "No person shall be subjected to any form of torture, cruel, inhuman or "
-            "degrading treatment or punishment."
+            "No person shall be subjected to any form of torture, cruel, inhuman or degrading treatment or punishment."
         ),
         "tags": ["constitutional", "rights", "criminal", "police"],
     },
@@ -65,9 +62,7 @@ STATUTE_DB = [
         ),
         "tags": ["constitutional", "rights", "land", "property"],
     },
-
     # ── Employment Act 2006 ───────────────────────────────────────────────
-
     {
         "act": "Employment Act 2006",
         "section": "Section 5",
@@ -247,9 +242,7 @@ STATUTE_DB = [
         ),
         "tags": ["employment", "dismissal", "misconduct"],
     },
-
     # ── The Landlord and Tenant Act, 2022 ───────────────────────────────
-
     {
         "act": "The Landlord and Tenant Act, 2022",
         "section": "Section 3",
@@ -334,8 +327,7 @@ STATUTE_DB = [
         "section": "Section 14",
         "title": "Tenant not to use premises for unlawful purpose",
         "text": (
-            "A tenant shall not use the premises or permit the use of the rented premises "
-            "for any unlawful purpose."
+            "A tenant shall not use the premises or permit the use of the rented premises for any unlawful purpose."
         ),
         "tags": ["tenant", "legal", "prohibition"],
     },
@@ -420,9 +412,7 @@ STATUTE_DB = [
         ),
         "tags": ["landlord", "eviction", "remedy"],
     },
-
     # ── The Contracts Act, 2010 ───────────────────────────────────────────
-
     {
         "act": "The Contracts Act, 2010",
         "section": "Section 10",
@@ -495,19 +485,14 @@ STATUTE_DB = [
         "act": "The Contracts Act, 2010",
         "section": "Section 23",
         "title": "Agreement void for uncertainty",
-        "text": (
-            "An agreement, the meaning of which is not certain or capable of being "
-            "made certain, is void."
-        ),
+        "text": ("An agreement, the meaning of which is not certain or capable of being made certain, is void."),
         "tags": ["contract", "validity", "void"],
     },
     {
         "act": "The Contracts Act, 2010",
         "section": "Section 25",
         "title": "Agreement to do impossible act",
-        "text": (
-            "(1) An agreement to do an act which is impossible to perform is void."
-        ),
+        "text": ("(1) An agreement to do an act which is impossible to perform is void."),
         "tags": ["contract", "performance", "void"],
     },
     {
@@ -588,9 +573,7 @@ STATUTE_DB = [
         ),
         "tags": ["contract", "indemnity", "guarantee"],
     },
-
     # ── Police (Amendment) Act, 2006 ───────────────────────────────────────
-
     {
         "act": "Police (Amendment) Act, 2006",
         "section": "Section 2",
@@ -748,14 +731,10 @@ STATUTE_DB = [
         "act": "Police (Amendment) Act, 2006",
         "section": "Section 31",
         "title": "Currency point value",
-        "text": (
-            "FIRST SCHEDULE: “currency point shall be equivalent to 20,000 shillings”."
-        ),
+        "text": ("FIRST SCHEDULE: “currency point shall be equivalent to 20,000 shillings”."),
         "tags": ["police", "legal", "currency"],
     },
-
     # ── The Land (Amendment) Act, 2010 ──────────────────────────────────
-
     {
         "act": "The Land (Amendment) Act, 2010",
         "section": "Section 1",
@@ -811,9 +790,7 @@ STATUTE_DB = [
         ),
         "tags": ["land", "eviction", "offence"],
     },
-
     # ── Tier 4 Microfinance / Moneylenders Act 2016 ───────────────────────
-
     {
         "act": "Tier 4 Microfinance Institutions and Moneylenders Act 2016",
         "section": "Section 78",

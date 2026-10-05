@@ -12,10 +12,10 @@ Run with:
 """
 
 import asyncio
-import json
-from utils.session import new_session
+
 from agents.orchestrator import OrchestratorAgent
 from config import get_api_key
+from utils.session import new_session
 
 # ── Sample documents ──────────────────────────────────────────────────────────
 
@@ -81,10 +81,11 @@ Badge No: 4471
 
 # ── Test runner ───────────────────────────────────────────────────────────────
 
+
 async def run_test(name: str, document: str):
-    print(f"\n{'='*60}")
+    print(f"\n{'=' * 60}")
     print(f"TEST: {name}")
-    print('='*60)
+    print("=" * 60)
 
     try:
         get_api_key()
@@ -102,22 +103,22 @@ async def run_test(name: str, document: str):
         print(f"\nSUMMARY:\n{result['summary']}")
 
         print(f"\nYOUR RIGHTS ({len(result['your_rights'])}):")
-        for r in result['your_rights']:
+        for r in result["your_rights"]:
             print(f"  • {r}")
 
         print(f"\nRISKS ({len(result['risks'])}):")
-        for risk in result['risks']:
+        for risk in result["risks"]:
             print(f"  [{risk['severity']}] {risk['plain_explanation']}")
             print(f"         Document says: {risk['what_document_says']}")
             print(f"         Law says:      {risk['what_law_says']}")
             print(f"         Legal basis:   {risk['legal_basis']}")
 
         print(f"\nDEADLINES ({len(result['deadlines'])}):")
-        for d in result['deadlines']:
+        for d in result["deadlines"]:
             print(f"  [{d['urgency']}] {d['description']} — {d['date_mentioned']}")
 
         print(f"\nNEXT STEPS ({len(result['next_steps'])}):")
-        for step in result['next_steps']:
+        for step in result["next_steps"]:
             print(f"  • {step}")
 
         print(f"\nDISCLAIMER:\n{result['disclaimer']}")
@@ -136,7 +137,7 @@ async def main():
     await run_test("Employment Contract Clause", EMPLOYMENT_CONTRACT_CLAUSE)
     await run_test("Police Summons", POLICE_SUMMONS)
 
-    print(f"\n{'='*60}")
+    print(f"\n{'=' * 60}")
     print("All tests complete.")
 
 
