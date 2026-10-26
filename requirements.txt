@@ -1,7 +1,7 @@
 # Sheria Yangu dependencies
 openai>=1.50.0
 fastmcp>=0.4.0
-fastapi>=0.115.0
+fastapi>=0.161.1
 uvicorn>=0.32.0
 pypdf>=4.0.0
 python-multipart>=0.0.12
