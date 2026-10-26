@@ -1,0 +1,17 @@
+target-version = "py311"
+line-length = 120
+extend-exclude = ["notebooks"]
+
+[lint]
+# pycodestyle errors/warnings, pyflakes, import sorting, bugbear.
+select = ["E", "W", "F", "I", "B"]
+# E501: the formatter owns line length; long prompt strings and statute text are deliberate.
+ignore = ["E501"]
+
+[lint.per-file-ignores]
+# The Streamlit entrypoint puts the repo root on sys.path before importing project modules.
+"app/streamlit_app.py" = ["E402"]
+
+[lint.flake8-bugbear]
+# FastAPI dependency markers are meant to be called in argument defaults.
+extend-immutable-calls = ["fastapi.File", "fastapi.Depends", "fastapi.Query", "fastapi.Body"]

@@ -11,6 +11,7 @@ API SETUP (default provider is Google):
 """
 
 import os
+
 from dotenv import load_dotenv
 
 load_dotenv()
@@ -24,6 +25,7 @@ OPENROUTER_API_KEY = os.environ.get("OPENROUTER_API_KEY", "")
 OPENAI_API_KEY = os.environ.get("OPENAI_API_KEY", "")
 GOOGLE_API_KEY = os.environ.get("GOOGLE_API_KEY", "")
 
+
 # ── Active key (used by all agents) ──────────────────────────────────────────
 def get_api_key() -> str:
     if USE_GOOGLE_API:
@@ -35,31 +37,31 @@ def get_api_key() -> str:
     elif OPENROUTER_API_KEY:
         return OPENROUTER_API_KEY
     else:
-        raise ValueError(
-            "No API key set. Add OPENAI_API_KEY or OPENROUTER_API_KEY to your .env file."
-        )
+        raise ValueError("No API key set. Add OPENAI_API_KEY or OPENROUTER_API_KEY to your .env file.")
+
 
 # ── Model configuration ───────────────────────────────────────────────────────
 # OpenRouter models
 OPENROUTER_BASE_URL = "https://openrouter.ai/api/v1"
-OPENROUTER_STANDARD_MODEL = "google/gemini-2.5-flash"   # for intake, research, synthesis
+OPENROUTER_STANDARD_MODEL = "google/gemini-2.5-flash"  # for intake, research, synthesis
 OPENROUTER_REASONING_MODEL = "google/gemini-2.5-flash"  # for analysis (swap when credits available)
-OPENROUTER_FALLBACK_MODEL  = "meta-llama/llama-3.3-70b-instruct:free"
+OPENROUTER_FALLBACK_MODEL = "meta-llama/llama-3.3-70b-instruct:free"
 
 # Direct OpenAI models
 OPENAI_BASE_URL = "https://api.openai.com/v1"
-OPENAI_STANDARD_MODEL  = "gpt-4o-mini"  # for intake, research, synthesis
-OPENAI_REASONING_MODEL = "gpt-4o"       # for analysis
-OPENAI_FALLBACK_MODEL  = "gpt-4o-mini"
+OPENAI_STANDARD_MODEL = "gpt-4o-mini"  # for intake, research, synthesis
+OPENAI_REASONING_MODEL = "gpt-4o"  # for analysis
+OPENAI_FALLBACK_MODEL = "gpt-4o-mini"
 
 # Google API models (production — swap USE_GOOGLE_API to True)
 GOOGLE_BASE_URL = "https://generativelanguage.googleapis.com/v1beta/openai/"
-GOOGLE_STANDARD_MODEL  = "gemini-3.6-flash"        # intake, research, synthesis
+GOOGLE_STANDARD_MODEL = "gemini-3.6-flash"  # intake, research, synthesis
 GOOGLE_REASONING_MODEL = "gemini-3.1-pro-preview"  # analysis — deep legal reasoning
 # Deliberately a different model from GOOGLE_STANDARD_MODEL: free-tier quota is
 # per-project-per-model, so falling back to the same model on a 429 just fails
 # again. gemini-3.1-flash-lite sits in its own quota bucket.
-GOOGLE_FALLBACK_MODEL  = "gemini-3.1-flash-lite"
+GOOGLE_FALLBACK_MODEL = "gemini-3.1-flash-lite"
+
 
 # ── Active model selection ────────────────────────────────────────────────────
 def get_base_url() -> str:
@@ -67,10 +69,12 @@ def get_base_url() -> str:
         return GOOGLE_BASE_URL
     return OPENAI_BASE_URL if OPENAI_API_KEY else OPENROUTER_BASE_URL
 
+
 def get_standard_model() -> str:
     if USE_GOOGLE_API:
         return GOOGLE_STANDARD_MODEL
     return OPENAI_STANDARD_MODEL if OPENAI_API_KEY else OPENROUTER_STANDARD_MODEL
+
 
 def get_reasoning_model() -> str:
     """
@@ -84,10 +88,12 @@ def get_reasoning_model() -> str:
         return GOOGLE_REASONING_MODEL
     return OPENAI_REASONING_MODEL if OPENAI_API_KEY else OPENROUTER_REASONING_MODEL
 
+
 def get_fallback_model() -> str:
     if USE_GOOGLE_API:
         return GOOGLE_FALLBACK_MODEL
     return OPENAI_FALLBACK_MODEL if OPENAI_API_KEY else OPENROUTER_FALLBACK_MODEL
+
 
 # ── API security settings ─────────────────────────────────────────────────────
 # Comma-separated list of allowed browser origins for CORS, e.g.

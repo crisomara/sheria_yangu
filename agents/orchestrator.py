@@ -12,12 +12,13 @@ No document content persists between requests.
 """
 
 from typing import Optional
+
+from agents.analysis import AnalysisAgent
 from agents.intake import IntakeAgent
 from agents.research import ResearchAgent
-from agents.analysis import AnalysisAgent
 from agents.synthesis import SynthesisAgent
-from utils.session import update_session, destroy_session
 from config import get_api_key
+from utils.session import destroy_session, update_session
 
 DISCLAIMER = (
     "Sheria Yangu provides legal information based on Ugandan law, "
@@ -31,24 +32,20 @@ LEGAL_REFERRALS = [
         "name": "Uganda Law Society",
         "phone": "0414-254848",
         "url": "https://www.ugandabar.or.ug",
-        "notes": "Can refer you to a qualified advocate."
+        "notes": "Can refer you to a qualified advocate.",
     },
     {
         "name": "FIDA Uganda",
         "phone": "0414-530848",
         "url": "https://www.fidauganda.org",
-        "notes": "Free legal aid for women and vulnerable groups."
+        "notes": "Free legal aid for women and vulnerable groups.",
     },
-    {
-        "name": "LASPNET",
-        "url": "https://www.laspnet.org",
-        "notes": "Network of legal aid providers across Uganda."
-    },
+    {"name": "LASPNET", "url": "https://www.laspnet.org", "notes": "Network of legal aid providers across Uganda."},
     {
         "name": "Uganda Human Rights Commission",
         "phone": "0800-200-500",
         "url": "https://www.uhrc.ug",
-        "notes": "Toll-free. For human rights violations."
+        "notes": "Toll-free. For human rights violations.",
     },
 ]
 
@@ -97,8 +94,10 @@ class OrchestratorAgent:
                 statutes=research_result["statutes"],
             )
             update_session(self.session_id, "analysis", analysis_result)
-            print(f"[Orchestrator] Found {len(analysis_result['risks'])} risks, "
-                  f"{len(analysis_result['deadlines'])} deadlines")
+            print(
+                f"[Orchestrator] Found {len(analysis_result['risks'])} risks, "
+                f"{len(analysis_result['deadlines'])} deadlines"
+            )
 
             print("[Orchestrator] Step 4: Synthesis agent...")
             synthesis = SynthesisAgent(api_key=self.api_key)

@@ -1,5 +1,7 @@
 # Sheria Yangu — Know Your Rights Uganda
 
+[![CI](https://github.com/crisomara/sheria_yangu/actions/workflows/ci.yml/badge.svg)](https://github.com/crisomara/sheria_yangu/actions/workflows/ci.yml) [![Security](https://github.com/crisomara/sheria_yangu/actions/workflows/security.yml/badge.svg)](https://github.com/crisomara/sheria_yangu/actions/workflows/security.yml)
+
 > *Sheria* means "law" in Swahili. Every Ugandan citizen deserves to understand the documents that affect their life.
 
 Sheria Yangu is an AI-powered multi-agent system that helps Ugandan citizens understand their legal documents in plain language. Upload or paste a contract, notice, or summons, and the system tells you what the document says, what Ugandan law says, what your rights are, and what options are available to you.
@@ -281,6 +283,23 @@ CHECKLIST.md                  # portfolio-readiness checklist for this project
 ```
 
 ---
+
+## CI
+
+Every push and pull request runs two GitHub Actions workflows:
+
+- **CI** (`.github/workflows/ci.yml`): `ruff check` and `ruff format --check`; `pytest` with coverage on Python 3.11 and 3.12 (the coverage report is uploaded as a build artifact); and a Docker job that builds the image and boots the API until `/health` answers.
+- **Security** (`.github/workflows/security.yml`, also weekly): gitleaks secret scanning over the full history, `pip-audit` on `requirements.txt`, CodeQL analysis for Python, dependency review on pull requests, and actionlint on the workflow files.
+
+No API keys are configured in CI and no test calls a model provider. The tests cover the session store, the statute knowledge base and MCP tools, the model-fallback helper, agent response parsing (with a fake client), the FastAPI endpoints (validation, size limits, security headers, missing-key error) and a render check of the Streamlit demo. The one live end-to-end test skips itself unless `GOOGLE_API_KEY` is set, so it only runs when you opt in locally:
+
+```
+pip install -r requirements.txt -r requirements-dev.txt
+pytest                       # offline suite
+GOOGLE_API_KEY=... pytest -m live   # optional real pipeline run
+```
+
+Dependabot opens grouped weekly updates for pip, the Docker base image and GitHub Actions.
 
 ## License
 

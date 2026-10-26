@@ -23,6 +23,7 @@ Usage:
 
 Writes results to scripts/eval_results.json and prints a summary table.
 """
+
 from __future__ import annotations
 
 import asyncio
@@ -32,12 +33,19 @@ from pathlib import Path
 
 from agents.orchestrator import OrchestratorAgent
 from config import get_api_key
+from tests.test_pipeline import EMPLOYMENT_CONTRACT_CLAUSE, EVICTION_NOTICE, POLICE_SUMMONS
 from utils.session import new_session
-from tests.test_pipeline import EVICTION_NOTICE, EMPLOYMENT_CONTRACT_CLAUSE, POLICE_SUMMONS
 
 EXPECTED_TOP_LEVEL_KEYS = {
-    "session_id", "document_type", "summary", "your_rights", "risks",
-    "deadlines", "next_steps", "legal_referrals", "disclaimer",
+    "session_id",
+    "document_type",
+    "summary",
+    "your_rights",
+    "risks",
+    "deadlines",
+    "next_steps",
+    "legal_referrals",
+    "disclaimer",
 }
 
 # Keyword-based rubric checks: for each document, at least one risk or deadline should
@@ -64,9 +72,7 @@ RUBRIC = {
 
 
 def _matches_any(haystack_items: list[dict], fields: tuple[str, ...], needles: list[str]) -> bool:
-    blob = " ".join(
-        str(item.get(field, "")) for item in haystack_items for field in fields
-    ).lower()
+    blob = " ".join(str(item.get(field, "")) for item in haystack_items for field in fields).lower()
     return any(n.lower() in blob for n in needles)
 
 
@@ -102,11 +108,14 @@ async def run_one(name: str, document_text: str, api_key: str) -> dict:
         row["n_deadlines"] = len(deadlines)
         rubric = RUBRIC[name]
         row["risks_rubric_pass"] = _matches_any(
-            risks, ("clause", "what_document_says", "what_law_says", "plain_explanation"),
+            risks,
+            ("clause", "what_document_says", "what_law_says", "plain_explanation"),
             rubric["risks_any_of"],
         )
         row["deadlines_rubric_pass"] = _matches_any(
-            deadlines, ("description", "date_mentioned"), rubric["deadlines_any_of"],
+            deadlines,
+            ("description", "date_mentioned"),
+            rubric["deadlines_any_of"],
         )
 
     return row
@@ -120,10 +129,12 @@ async def main() -> None:
         row = await run_one(name, spec["text"], api_key)
         rows.append(row)
         status = "OK" if row["error"] is None else f"ERROR: {row['error']}"
-        print(f"  {status} — {row['latency_seconds']}s, "
-              f"schema_valid={row['schema_valid']}, "
-              f"risks_rubric={row['risks_rubric_pass']}, "
-              f"deadlines_rubric={row['deadlines_rubric_pass']}")
+        print(
+            f"  {status} — {row['latency_seconds']}s, "
+            f"schema_valid={row['schema_valid']}, "
+            f"risks_rubric={row['risks_rubric_pass']}, "
+            f"deadlines_rubric={row['deadlines_rubric_pass']}"
+        )
 
     n_ok = sum(1 for r in rows if r["error"] is None)
     n_schema_valid = sum(1 for r in rows if r["schema_valid"])

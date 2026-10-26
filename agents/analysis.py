@@ -23,8 +23,10 @@ CRITICAL CONSTRAINT - factual comparison only, no legal advice:
 
 import json
 import re
+
 from openai import OpenAI
-from config import get_base_url, get_reasoning_model, get_fallback_model, USE_GOOGLE_API
+
+from config import USE_GOOGLE_API, get_base_url, get_fallback_model, get_reasoning_model
 from utils.llm import create_with_fallback
 
 ANALYSIS_SYSTEM_PROMPT = """You are the Analysis Agent for Sheria Yangu, a legal
@@ -109,16 +111,21 @@ class AnalysisAgent:
         print(f"[Analysis] Using model: {model_label}")
 
         response = await create_with_fallback(
-            self.client, self.model, self.fallback,
+            self.client,
+            self.model,
+            self.fallback,
             messages=[
                 {"role": "system", "content": ANALYSIS_SYSTEM_PROMPT},
-                {"role": "user", "content": (
-                    f"DOCUMENT TEXT:\n{extracted_text}\n\n"
-                    f"ENTITIES EXTRACTED:\n{json.dumps(entities, indent=2)}\n\n"
-                    f"RELEVANT UGANDAN STATUTES:\n{json.dumps(statutes, indent=2)}\n\n"
-                    "Compare what the document says against what the law says. "
-                    "Identify risks, deadlines, and rights gaps."
-                )}
+                {
+                    "role": "user",
+                    "content": (
+                        f"DOCUMENT TEXT:\n{extracted_text}\n\n"
+                        f"ENTITIES EXTRACTED:\n{json.dumps(entities, indent=2)}\n\n"
+                        f"RELEVANT UGANDAN STATUTES:\n{json.dumps(statutes, indent=2)}\n\n"
+                        "Compare what the document says against what the law says. "
+                        "Identify risks, deadlines, and rights gaps."
+                    ),
+                },
             ],
             agent_label="Analysis",
         )

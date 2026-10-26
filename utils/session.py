@@ -1,4 +1,4 @@
-﻿"""
+"""
 Session management for Sheria Yangu.
 
 SECURITY DESIGN:
@@ -8,8 +8,8 @@ SECURITY DESIGN:
 - The user document is processed and discarded within a single pipeline run.
 """
 
-import uuid
 import time
+import uuid
 from typing import Optional
 
 SESSION_TTL_SECONDS = 600
@@ -47,9 +47,6 @@ def destroy_session(session_id: str) -> None:
 
 def _evict_expired() -> None:
     now = time.time()
-    expired = [
-        sid for sid, s in _sessions.items()
-        if now - s["created_at"] > SESSION_TTL_SECONDS
-    ]
+    expired = [sid for sid, s in _sessions.items() if now - s["created_at"] > SESSION_TTL_SECONDS]
     for sid in expired:
         del _sessions[sid]
