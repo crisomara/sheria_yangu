@@ -264,7 +264,7 @@ STATUTE_DB = [
             "of a data message; or (b) the party against whom enforcement is sought admits "
             "that the agreement was entered into."
         ),
-        "tags": ["landlord", "tenant", "legal"],
+        "tags": ["landlord", "tenant", "agreement", "legal"],
     },
     {
         "act": "The Landlord and Tenant Act, 2022",
