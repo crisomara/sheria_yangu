@@ -4,14 +4,14 @@ Retrieves relevant Ugandan statutes via the MCP knowledge base.
 """
 
 import json
-import re
 
 from fastmcp import Client
 from openai import OpenAI
 
 from config import get_base_url, get_fallback_model, get_standard_model
 from mcp_tools.server import mcp as statute_mcp_server
-from utils.llm import create_with_fallback
+from utils.llm import create_with_fallback, parse_agent_json
+from utils.schemas import ResearchOutput
 
 RESEARCH_SYSTEM_PROMPT = """You are the Research Agent for Sheria Yangu, a legal
 document understanding system for Ugandan citizens.
@@ -79,9 +79,7 @@ class ResearchAgent:
             agent_label="Research",
         )
 
-        raw = response.choices[0].message.content.strip()
-        raw = re.sub(r"^```json\s*|```$", "", raw, flags=re.MULTILINE).strip()
-        return json.loads(raw)
+        return parse_agent_json(response, ResearchOutput, agent_label="Research")
 
     async def _lookup_statutes_via_mcp(self, document_type: str, entities: dict) -> list[dict]:
         """Calls the lookup_statutes tool on the real MCP server (in-process transport)."""

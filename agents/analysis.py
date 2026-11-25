@@ -17,17 +17,18 @@ The architecture, prompts, and output schema are identical across providers —
 only the underlying model changes.
 
 CRITICAL CONSTRAINT - factual comparison only, no legal advice:
-  PERMITTED:  The document states 7 days notice. Employment Act requires 30 days.
+  PERMITTED:  The document states 3 days notice. The Landlord and Tenant Act 2022 s.38
+              requires thirty days for a monthly tenancy.
   FORBIDDEN:  You should reject this clause.
 """
 
 import json
-import re
 
 from openai import OpenAI
 
 from config import USE_GOOGLE_API, get_base_url, get_fallback_model, get_reasoning_model
-from utils.llm import create_with_fallback
+from utils.llm import create_with_fallback, parse_agent_json
+from utils.schemas import AnalysisOutput
 
 ANALYSIS_SYSTEM_PROMPT = """You are the Analysis Agent for Sheria Yangu, a legal
 document understanding system for Ugandan citizens.
@@ -37,8 +38,12 @@ You do NOT give legal advice. You do NOT tell the citizen what to do.
 Surface factual comparisons only.
 
 PERMITTED:
-  The document states 7 days notice. The Employment Act 2006 s.58 requires 30 days.
+  The document states 3 days notice. The Landlord and Tenant Act 2022 s.38 requires
+  thirty days for a monthly tenancy.
   This clause waives a right granted by the Landlord and Tenant Act 2022.
+
+Take every figure for what the law requires from the statute text you are given.
+Never state a notice period, amount or deadline from memory.
 
 NOT PERMITTED:
   You should reject this clause.
@@ -129,6 +134,4 @@ class AnalysisAgent:
             ],
             agent_label="Analysis",
         )
-        raw = response.choices[0].message.content.strip()
-        raw = re.sub(r"^```json\s*|```$", "", raw, flags=re.MULTILINE).strip()
-        return json.loads(raw)
+        return parse_agent_json(response, AnalysisOutput, agent_label="Analysis")
