@@ -18,6 +18,7 @@ from slowapi.util import get_remote_address
 
 import config
 from agents.orchestrator import OrchestratorAgent
+from utils.errors import ModelOutputError, UnreadableDocumentError
 from utils.session import new_session
 
 app = FastAPI(
@@ -35,12 +36,19 @@ app.state.limiter = limiter
 app.add_exception_handler(RateLimitExceeded, _rate_limit_exceeded_handler)
 
 
+SECURITY_HEADERS = {
+    "X-Content-Type-Options": "nosniff",
+    "X-Frame-Options": "DENY",
+    "Referrer-Policy": "no-referrer",
+}
+
+MALFORMED_REPLY_DETAIL = "The AI model returned a malformed response. Please retry."
+
+
 @app.middleware("http")
 async def security_headers(request: Request, call_next):
     response = await call_next(request)
-    response.headers["X-Content-Type-Options"] = "nosniff"
-    response.headers["X-Frame-Options"] = "DENY"
-    response.headers["Referrer-Policy"] = "no-referrer"
+    response.headers.update(SECURITY_HEADERS)
     return response
 
 
@@ -66,9 +74,33 @@ async def api_error_handler(request, exc: APIError):
 @app.exception_handler(json.JSONDecodeError)
 async def json_decode_error_handler(request, exc: json.JSONDecodeError):
     # An agent's LLM response didn't come back as valid JSON.
+    return JSONResponse(status_code=502, content={"detail": MALFORMED_REPLY_DETAIL})
+
+
+@app.exception_handler(ModelOutputError)
+async def model_output_error_handler(request, exc: ModelOutputError):
+    # A model reply was empty, was not JSON, or was JSON in the wrong shape
+    # (see utils/schemas.py). The client gets the same answer in each case.
+    print(f"[API] {exc}")
+    return JSONResponse(status_code=502, content={"detail": MALFORMED_REPLY_DETAIL})
+
+
+@app.exception_handler(UnreadableDocumentError)
+async def unreadable_document_handler(request, exc: UnreadableDocumentError):
+    # A damaged PDF, a scan with no text layer, or an empty upload. The message
+    # is written for the user and is safe to return.
+    return JSONResponse(status_code=422, content={"detail": str(exc)})
+
+
+@app.exception_handler(Exception)
+async def unexpected_error_handler(request, exc: Exception):
+    # Last resort, so an unforeseen failure still answers in JSON and carries the
+    # security headers. This response is sent from outside the middleware above,
+    # so the headers are added here. The traceback is logged by the server.
     return JSONResponse(
-        status_code=502,
-        content={"detail": "The AI model returned a malformed response. Please retry."},
+        status_code=500,
+        content={"detail": "Something went wrong on the server. Please retry."},
+        headers=SECURITY_HEADERS,
     )
 
 

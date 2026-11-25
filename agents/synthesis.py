@@ -5,12 +5,12 @@ GUARDRAIL: legal information only, never legal advice.
 """
 
 import json
-import re
 
 from openai import OpenAI
 
 from config import get_base_url, get_fallback_model, get_standard_model
-from utils.llm import create_with_fallback
+from utils.llm import create_with_fallback, parse_agent_json
+from utils.schemas import SynthesisOutput
 
 SYNTHESIS_SYSTEM_PROMPT = """You are the Synthesis Agent for Sheria Yangu, a legal
 document understanding system for Ugandan citizens. You write the citizen-facing report.
@@ -71,6 +71,4 @@ class SynthesisAgent:
             agent_label="Synthesis",
         )
 
-        raw = response.choices[0].message.content.strip()
-        raw = re.sub(r"^```json\s*|```$", "", raw, flags=re.MULTILINE).strip()
-        return json.loads(raw)
+        return parse_agent_json(response, SynthesisOutput, agent_label="Synthesis")

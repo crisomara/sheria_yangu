@@ -36,6 +36,7 @@ from openai import APIError
 
 from agents.orchestrator import OrchestratorAgent
 from tests.test_pipeline import EMPLOYMENT_CONTRACT_CLAUSE, EVICTION_NOTICE, POLICE_SUMMONS
+from utils.errors import ModelOutputError, UnreadableDocumentError
 from utils.session import new_session
 
 SEVERITY_ORDER = {"HIGH": 0, "MEDIUM": 1, "LOW": 2}
@@ -296,6 +297,12 @@ if submitted:
                 st.error(
                     "The AI provider rejected that request. Double-check the API key is valid and has quota remaining."
                 )
+                result = None
+            except UnreadableDocumentError as e:
+                st.warning(str(e))
+                result = None
+            except ModelOutputError:
+                st.error("The AI model returned a reply that could not be read. Please try again.")
                 result = None
             except Exception as e:  # noqa: BLE001 - demo UI, show a clean message not a stack trace
                 st.error(f"Something went wrong processing that document: {e}")

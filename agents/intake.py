@@ -3,14 +3,21 @@ Intake Agent - Sheria Yangu
 Classifies document type and extracts key entities.
 """
 
-import json
-import re
+import io
 from typing import Optional
 
 from openai import OpenAI
+from pypdf import PdfReader
 
 from config import get_base_url, get_fallback_model, get_standard_model
-from utils.llm import create_with_fallback
+from utils.errors import UnreadableDocumentError
+from utils.llm import create_with_fallback, parse_agent_json
+from utils.schemas import IntakeOutput
+
+NO_TEXT_MESSAGE = (
+    "No readable text was found in this document. If it is a scan or a photo, paste the text of the document instead."
+)
+BAD_PDF_MESSAGE = "This PDF could not be opened. Check the file, or paste the text of the document instead."
 
 INTAKE_SYSTEM_PROMPT = """You are the Intake Agent for Sheria Yangu, a legal document
 understanding system for Ugandan citizens.
@@ -55,12 +62,19 @@ class IntakeAgent:
     ) -> dict:
         if document_text:
             text = document_text
-        elif raw_bytes and mime_type == "application/pdf":
+        elif raw_bytes is not None and mime_type == "application/pdf":
             text = self._extract_pdf_text(raw_bytes)
-        elif raw_bytes and mime_type == "text/plain":
+        elif raw_bytes is not None and mime_type == "text/plain":
             text = raw_bytes.decode("utf-8", errors="replace")
+        elif document_text is not None:
+            text = document_text
         else:
             raise ValueError("IntakeAgent requires document_text or raw_bytes.")
+
+        # A scan with no text layer, an empty upload or whitespace has nothing to
+        # analyse. Stop here, before any model call is paid for.
+        if not text.strip():
+            raise UnreadableDocumentError(NO_TEXT_MESSAGE)
 
         response = await create_with_fallback(
             self.client,
@@ -73,23 +87,18 @@ class IntakeAgent:
             agent_label="Intake",
         )
 
-        raw = response.choices[0].message.content.strip()
-        raw = re.sub(r"^```json\s*|```$", "", raw, flags=re.MULTILINE).strip()
-        result = json.loads(raw)
+        result = parse_agent_json(response, IntakeOutput, agent_label="Intake")
 
-        if not result.get("extracted_text"):
+        if not result["extracted_text"].strip():
             result["extracted_text"] = text
 
         return result
 
     def _extract_pdf_text(self, raw_bytes: bytes) -> str:
+        """Returns the text layer of a PDF. Raises UnreadableDocumentError if the file cannot be parsed."""
         try:
-            import io
-
-            from pypdf import PdfReader
-
             reader = PdfReader(io.BytesIO(raw_bytes))
             pages = [page.extract_text() or "" for page in reader.pages]
-            return "\n\n".join(pages).strip()
-        except Exception as e:
-            return f"[PDF extraction failed: {e}. Please paste the document text directly.]"
+        except Exception as e:  # noqa: BLE001 - pypdf raises many error types for a damaged file
+            raise UnreadableDocumentError(BAD_PDF_MESSAGE) from e
+        return "\n\n".join(pages).strip()

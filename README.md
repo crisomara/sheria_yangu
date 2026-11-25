@@ -243,7 +243,9 @@ Sheria Yangu always includes referral information in every report:
 - **Rate limiting**: `/analyse/text` and `/analyse/file` are capped at `RATE_LIMIT_PER_MINUTE` (default 10) requests/minute per client IP — keeps one client from burning through the LLM quota shared by everyone using a given deployment.
 - **Input limits**: request text is capped at `MAX_TEXT_LENGTH` (default 20,000 chars); file uploads are capped at `MAX_UPLOAD_BYTES` (default 10 MB) and checked incrementally while reading, so an oversized upload can't be used to exhaust server memory. Only `application/pdf` and `text/plain` are accepted.
 - Security headers (`X-Content-Type-Options`, `X-Frame-Options`, `Referrer-Policy`) are set on every response.
-- Errors return actionable JSON (missing key, upstream provider failure, malformed model output, rate limit, validation) without leaking internals like stack traces or the API key.
+- Errors return actionable JSON (missing key, upstream provider failure, malformed model output, unreadable document, rate limit, validation) without leaking internals like stack traces or the API key.
+- A PDF that cannot be opened, a scan with no text layer and an empty upload are refused with a `422` and a plain message before any model is called.
+- Every model reply is checked against a schema (`utils/schemas.py`) before the next agent uses it. A reply in the wrong shape returns a `502`, the same as a reply that is not JSON.
 
 **Not covered — deliberately out of scope for now:**
 - No end-user authentication. This is intentional: the product's mission is open access for citizens, not a gated service. If you deploy this publicly, the rate limiting above is your main abuse control, not auth.
